@@ -80,7 +80,27 @@
 
 <script>
   // ▼ アプリを増やすときは、ここに1行（{ ... },）を足すだけでOKです
+  // ※並び順のルール（2026/10/24 梶原翔の指示）：先頭は「マスタ検索」→「整備記録」の順で固定。
+  //   この2つの順番を変えるときは、翔に確認してから変えてください。
   const APPS = [
+    {
+      name: "マスタ検索",
+      desc: "顧客・車両マスタをすばやく検索",
+      url:  "https://script.google.com/macros/s/AKfycbyBB397j8UM6NDbtELqAmKv0vLJzl5-hjAtiZCmpQjlMbj7tEosMqvx0iuWybmkYXEuvw/exec",
+      color:"#231917", icon:"search"
+    },
+    {
+      name: "整備記録",
+      desc: "車両ごとの整備内容を記録・確認",
+      url:  "https://script.google.com/macros/s/AKfycbzobUtZ3nPrUSRq3ix-c3MaGl9BrW4j69l45DJn2WnvMM3m1l9UY09CQLUKxPnFvP33_g/exec",
+      color:"#D87D3C", icon:"wrench"
+    },
+    {
+      name: "請求書システム",
+      desc: "見積書・請求書・領収書の作成と発行（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbwm5spYaIHNI8LcTERw_RcpEWa0JQOzFeL2TGXvue-55QD2ZHaEOU6tYy_Q6tR8hkqFuA/exec",
+      color:"#B8612A", icon:"invoice"
+    },
     {
       name: "ジャイロ貸出ボード",
       desc: "返却・開始・在庫・代車・保険加入のカレンダー",
@@ -92,24 +112,6 @@
       desc: "領収書の作成・送付依頼を入れて、作成済み・送付済みを確認",
       url:  "https://claude.ai/artifact/T2xERSfXKUhsbGxVbgq356",
       color:"#8A5A2B", icon:"receipt"
-    },
-    {
-      name: "整備記録",
-      desc: "車両ごとの整備内容を記録・確認",
-      url:  "https://script.google.com/macros/s/AKfycbzobUtZ3nPrUSRq3ix-c3MaGl9BrW4j69l45DJn2WnvMM3m1l9UY09CQLUKxPnFvP33_g/exec",
-      color:"#D87D3C", icon:"wrench"
-    },
-    {
-      name: "マスタ検索",
-      desc: "顧客・車両マスタをすばやく検索",
-      url:  "https://script.google.com/macros/s/AKfycbyBB397j8UM6NDbtELqAmKv0vLJzl5-hjAtiZCmpQjlMbj7tEosMqvx0iuWybmkYXEuvw/exec",
-      color:"#231917", icon:"search"
-    },
-    {
-      name: "請求書システム",
-      desc: "見積書・請求書・領収書の作成と発行（会社のアカウントで開いてください）",
-      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbwm5spYaIHNI8LcTERw_RcpEWa0JQOzFeL2TGXvue-55QD2ZHaEOU6tYy_Q6tR8hkqFuA/exec",
-      color:"#B8612A", icon:"invoice"
     }
   ];
 
