@@ -116,6 +116,13 @@
   .toast.show{transform:translate(-50%,0);opacity:1}
   .toast b{color:var(--orange)}
 
+  /* ライオンの吹き出し */
+  .bubble{position:fixed;z-index:65;max-width:min(300px,calc(100vw - 24px));background:#fff;color:#231917;font-size:19px;font-weight:800;line-height:1.4;
+    padding:12px 18px;border-radius:20px;border:3px solid #231917;box-shadow:4px 4px 0 var(--orange);opacity:0;transform:scale(.6) translateY(10px);transform-origin:var(--tail,80%) 100%;
+    transition:opacity .2s,transform .3s var(--spring);cursor:pointer}
+  .bubble::after{content:"";position:absolute;bottom:-14px;left:var(--tail,80%);width:20px;height:20px;background:#fff;border-right:3px solid #231917;border-bottom:3px solid #231917;
+    transform:translateX(-50%) rotate(35deg) skewX(-10deg)}
+  .bubble.show{opacity:1;transform:none}
   footer{text-align:center; font-size:11px; color:var(--sub); padding:10px 0 calc(env(safe-area-inset-bottom) + 20px)}
   footer .tip{display:block;margin-bottom:4px;opacity:.8}
   canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
@@ -181,6 +188,7 @@
 </main>
 <footer><span class="tip" id="tip"></span>© ROD Co.,Ltd.</footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="bubble" id="bubble" role="status" hidden></div>
 <canvas id="fx" hidden></canvas>
 
 <script>
@@ -218,6 +226,16 @@
       url:  "https://claude.ai/artifact/T2xERSfXKUhsbGxVbgq356",
       color:"#8A5A2B", icon:"receipt"
     }
+  ];
+
+  // ▼ ライオンを2回タップしたときのセリフ。1行ずつ足したり消したりできます（毎回ランダムで1つ）
+  const LION_LINES = [
+    "Run Or Die！今日もいこか",
+    "今日もジャイロ走らせよか！",
+    "安全運転でたのむで〜",
+    "整備記録、書き忘れてへん？",
+    "領収書の依頼、たまってへんか？",
+    "ええ仕事しよな！"
   ];
 
   const ICONS = {
@@ -351,9 +369,25 @@
   $("lion").addEventListener("click", () => {
     const l = $("lion"); l.classList.remove("roar"); void l.offsetWidth; l.classList.add("roar"); buzz(20);
     taps++; clearTimeout(tapT); tapT = setTimeout(() => taps = 0, 600);
-    if (taps >= 2) { taps = 0; confetti(); toast("<b>Run Or Die！</b> 今日もいこか") }
+    if (taps >= 2) { taps = 0; confetti(); speak() }
   });
   $("lion").addEventListener("animationend", e => { if (e.animationName === "roar") $("lion").classList.remove("roar") });
+  let lastLine = -1, bubbleT = null;
+  function speak() {
+    let i = Math.floor(Math.random() * LION_LINES.length);
+    if (LION_LINES.length > 1 && i === lastLine) i = (i + 1) % LION_LINES.length;
+    lastLine = i;
+    const b = $("bubble"), r = $("lion").getBoundingClientRect();
+    b.textContent = LION_LINES[i];
+    b.hidden = false;
+    const w = b.offsetWidth, left = Math.max(12, Math.min(r.left + r.width * .35 - w, innerWidth - w - 12));
+    b.style.left = left + "px";
+    b.style.top = Math.max(12, r.top - b.offsetHeight + 18) + "px";
+    b.style.setProperty("--tail", Math.min(w - 28, Math.max(18, r.left + r.width * .3 - left)) + "px");
+    b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+    clearTimeout(bubbleT); bubbleT = setTimeout(() => { b.classList.remove("show"); setTimeout(() => { if (!b.classList.contains("show")) b.hidden = true }, 250) }, 3200);
+  }
+  $("bubble").addEventListener("click", () => { $("bubble").classList.remove("show"); setTimeout(() => $("bubble").hidden = true, 250) });
   function confetti() {
     if (RM.matches) return;
     const c = $("fx"), x = c.getContext("2d"), dpr = devicePixelRatio || 1; c.hidden = false;
