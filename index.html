@@ -46,10 +46,10 @@
     background:var(--dark); color:#fff;
     padding:calc(env(safe-area-inset-top) + 26px) max(20px,env(safe-area-inset-right)) 26px max(20px,env(safe-area-inset-left));
   }
-  header .stripe{position:absolute; top:0; bottom:0; width:70px; transform:skewX(-20deg); opacity:.9}
-  header .s1{right:120px; background:var(--red)}
-  header .s2{right:30px; background:var(--orange)}
-  header .s3{right:205px; width:14px; background:var(--orange); opacity:.55}
+  header .logo-bg{position:absolute; right:70px; top:6%; height:96%; pointer-events:none; overflow:visible}
+  .logo-bg .p{transform-box:fill-box; transform-origin:center}
+  @media (max-width:520px){ header .logo-bg{right:24px; opacity:.55} }
+  .logo-bg .r{fill:var(--red)} .logo-bg .o{fill:var(--orange)} .logo-bg .k{fill:#3b2b27}
   .head-inner{position:relative; z-index:1; display:flex; align-items:center; gap:14px; max-width:720px; margin:0 auto; padding-right:96px}
   .head-inner .mark{height:46px; background:#fff; border-radius:10px; padding:5px 7px; flex:none}
   .head-inner h1{font-size:22px; letter-spacing:.06em}
@@ -60,7 +60,8 @@
   .net{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;background:rgba(255,255,255,.12);padding:1px 7px;border-radius:999px}
   .net i{width:6px;height:6px;border-radius:50%;background:#5fd18a;display:inline-block}
   .net.off i{background:#ff6b5b}
-  .lion{position:absolute; z-index:2; right:14px; bottom:-6px; height:96px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35)); transform-origin:50% 100%; cursor:pointer;touch-action:manipulation}
+  .lionwrap{position:absolute; z-index:2; right:14px; bottom:-6px; height:96px}
+  .lion{display:block; height:96px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35)); transform-origin:50% 100%; cursor:pointer;touch-action:manipulation}
 
   main{max-width:720px; margin:0 auto; padding:18px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
 
@@ -124,16 +125,18 @@
   @keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   @keyframes launch{0%{transform:scale(1)}35%{transform:scale(.95)}70%{transform:scale(1.03)}100%{transform:scale(1)}}
   @keyframes rip{to{transform:scale(2.8);opacity:0}}
-  @keyframes stripeIn{from{transform:skewX(-20deg) translateX(260px);opacity:0}to{transform:skewX(-20deg);opacity:.9}}
+  @keyframes slideIn{from{transform:translate(180px,-60px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes hop{0%,78%,100%{transform:translateY(0)}84%{transform:translateY(-14px) scaleY(1.04)}90%{transform:translateY(0) scaleY(.94) scaleX(1.04)}95%{transform:translateY(-4px)}}
   @keyframes lionIn{0%{transform:translateY(110%) rotate(8deg)}60%{transform:translateY(-6%) rotate(-3deg)}100%{transform:none}}
   @keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg)}}
   @keyframes roar{0%{transform:scale(1)}20%{transform:scale(1.18) rotate(-6deg)}40%{transform:scale(1.1) rotate(5deg)}60%{transform:scale(1.14) rotate(-3deg)}100%{transform:scale(1)}}
   @keyframes rise{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
   @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tc) 55%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
   @media (prefers-reduced-motion:no-preference){
-    header .s1{animation:stripeIn .7s var(--ease) both .05s}
-    header .s2{animation:stripeIn .7s var(--ease) both .15s}
-    header .s3{animation:stripeIn .7s var(--ease) both .25s}
+    .logo-bg .o{animation:slideIn .7s var(--ease) both .05s}
+    .logo-bg .r{animation:slideIn .7s var(--ease) both .15s}
+    .logo-bg .k{animation:slideIn .7s var(--ease) both .25s}
+    .lionwrap{animation:hop 3s ease-in-out 1.4s infinite;transform-origin:50% 100%}
     .lion{animation:lionIn .8s var(--spring) both .3s, sway 5s ease-in-out 1.2s infinite}
     .lion.roar{animation:roar .7s var(--spring)}
     .head-inner{animation:fadeup .5s var(--ease) both}
@@ -149,7 +152,12 @@
 <body>
 <div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></div>
 <header>
-  <span class="stripe s3"></span><span class="stripe s1"></span><span class="stripe s2"></span>
+  <svg class="logo-bg" viewBox="80 150 1440 1475" aria-hidden="true">
+    <path class="p r" d="M348 670 L561 578 L310 1515 L98 1605 Z"/>
+    <path class="p o" d="M1047 368 L1501 171 L1216 1120 L795 1303 Z"/>
+    <path class="p k" d="M680 342 L1051 343 L713 1603 L342 1603 Z"/>
+    <path class="p k" d="M1097 393 C1290 422 1420 530 1460 700 C1495 850 1455 1070 1237 1157 L1464 1603 L1138 1603 L899 1133 L951 937 C1010 958 1110 945 1150 835 C1190 725 1100 640 1035 623 Z"/>
+  </svg>
   <div class="head-inner">
     <img class="mark" src="logo-mark.png" alt="ROD">
     <div>
@@ -159,7 +167,7 @@
       <p class="updated">最終更新：2026年10月</p>
     </div>
   </div>
-  <img class="lion" id="lion" src="lion.png" alt="" title="タップしてみて">
+  <span class="lionwrap"><img class="lion" id="lion" src="lion.png" alt="" title="2回タップしてみて"></span>
 </header>
 
 <main>
@@ -338,12 +346,12 @@
     if (n >= 1 && n <= 9) { const vis = [...document.querySelectorAll(".tile:not(.hide)")]; if (vis[n - 1]) vis[n - 1].click() }
   });
 
-  /* ライオンをタップ（5回で紙吹雪） */
+  /* ライオンをタップ（2回連続で紙吹雪） */
   let taps = 0, tapT = null;
   $("lion").addEventListener("click", () => {
     const l = $("lion"); l.classList.remove("roar"); void l.offsetWidth; l.classList.add("roar"); buzz(20);
-    taps++; clearTimeout(tapT); tapT = setTimeout(() => taps = 0, 1500);
-    if (taps >= 5) { taps = 0; confetti(); toast("<b>Run Or Die！</b> 今日もいこか") }
+    taps++; clearTimeout(tapT); tapT = setTimeout(() => taps = 0, 600);
+    if (taps >= 2) { taps = 0; confetti(); toast("<b>Run Or Die！</b> 今日もいこか") }
   });
   $("lion").addEventListener("animationend", e => { if (e.animationName === "roar") $("lion").classList.remove("roar") });
   function confetti() {
