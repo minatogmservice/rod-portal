@@ -123,6 +123,8 @@
   .bubble::after{content:"";position:absolute;bottom:-14px;left:var(--tail,80%);width:20px;height:20px;background:#fff;border-right:3px solid #231917;border-bottom:3px solid #231917;
     transform:translateX(-50%) rotate(35deg) skewX(-10deg)}
   .bubble.show{opacity:1;transform:none}
+  .bubble.hint{font-size:15px;padding:8px 14px;border-width:2px;box-shadow:3px 3px 0 var(--orange)}
+  .bubble.hint::after{width:14px;height:14px;bottom:-10px;border-width:2px}
   footer{text-align:center; font-size:11px; color:var(--sub); padding:10px 0 calc(env(safe-area-inset-bottom) + 20px)}
   footer .tip{display:block;margin-bottom:4px;opacity:.8}
   canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
@@ -133,7 +135,7 @@
   @keyframes launch{0%{transform:scale(1)}35%{transform:scale(.95)}70%{transform:scale(1.03)}100%{transform:scale(1)}}
   @keyframes rip{to{transform:scale(2.8);opacity:0}}
   @keyframes slideIn{from{transform:translate(180px,-60px);opacity:0}to{transform:none;opacity:1}}
-  @keyframes hop{0%,78%,100%{transform:translateY(0)}84%{transform:translateY(-14px) scaleY(1.04)}90%{transform:translateY(0) scaleY(.94) scaleX(1.04)}95%{transform:translateY(-4px)}}
+  @keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-14px) scaleY(1.04)}58%{transform:translateY(0) scaleY(.94) scaleX(1.04)}78%{transform:translateY(-4px)}}
   @keyframes lionIn{0%{transform:translateY(110%) rotate(8deg)}60%{transform:translateY(-6%) rotate(-3deg)}100%{transform:none}}
   @keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg)}}
   @keyframes roar{0%{transform:scale(1)}20%{transform:scale(1.18) rotate(-6deg)}40%{transform:scale(1.1) rotate(5deg)}60%{transform:scale(1.14) rotate(-3deg)}100%{transform:scale(1)}}
@@ -143,7 +145,8 @@
     .logo-bg .o{animation:slideIn .7s var(--ease) both .05s}
     .logo-bg .r{animation:slideIn .7s var(--ease) both .15s}
     .logo-bg .k{animation:slideIn .7s var(--ease) both .25s}
-    .lionwrap{animation:hop 3s ease-in-out 1.4s infinite;transform-origin:50% 100%}
+    .lionwrap{transform-origin:50% 100%}
+    .lionwrap.hop{animation:hop .65s ease-in-out}
     .lion{animation:lionIn .8s var(--spring) both .3s, sway 5s ease-in-out 1.2s infinite}
     .lion.roar{animation:roar .7s var(--spring)}
     .head-inner{animation:fadeup .5s var(--ease) both}
@@ -236,7 +239,8 @@
     "今日も頑張るオン！",
     "整備記録、書き忘れてオン？",
     "現在のレンタル総台数は{レンタル台数}台だオン！",
-    "今日の予定は{今日の予定}件だオン！"
+    "今日の予定は{今日の予定}件だオン！",
+    "僕の名前ツェペリだオン！"
   ];
   let LION_DATA = {};
   fetch("lion-data.json?t=" + Date.now()).then(r => r.ok ? r.json() : {}).then(d => { LION_DATA = d || {} }).catch(() => {});
@@ -381,22 +385,38 @@
   });
   $("lion").addEventListener("animationend", e => { if (e.animationName === "roar") $("lion").classList.remove("roar") });
   let lastLine = "", bubbleT = null;
-  function speak() {
-    const lines = lionLines();
-    let i = Math.floor(Math.random() * lines.length);
-    if (lines.length > 1 && lines[i] === lastLine) i = (i + 1) % lines.length;
-    lastLine = lines[i];
-    const b = $("bubble"), r = $("lion").getBoundingClientRect();
-    b.textContent = lines[i];
+  let talking = false;
+  function speak(hintText) {
+    const b = $("bubble");
+    if (hintText && talking) return;                 // セリフ中はヒントを出さない
+    let text = hintText;
+    if (!hintText) {
+      const lines = lionLines();
+      let i = Math.floor(Math.random() * lines.length);
+      if (lines.length > 1 && lines[i] === lastLine) i = (i + 1) % lines.length;
+      text = lastLine = lines[i];
+      talking = true;
+    }
+    b.classList.toggle("hint", !!hintText);
+    const r = $("lion").getBoundingClientRect();
+    b.textContent = text;
     b.hidden = false;
     const w = b.offsetWidth, left = Math.max(12, Math.min(r.left + r.width * .35 - w, innerWidth - w - 12));
     b.style.left = left + "px";
     b.style.top = Math.max(12, r.top - b.offsetHeight + 18) + "px";
     b.style.setProperty("--tail", Math.min(w - 28, Math.max(18, r.left + r.width * .3 - left)) + "px");
     b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
-    clearTimeout(bubbleT); bubbleT = setTimeout(() => { b.classList.remove("show"); setTimeout(() => { if (!b.classList.contains("show")) b.hidden = true }, 250) }, 3200);
+    clearTimeout(bubbleT); bubbleT = setTimeout(() => { talking = false; b.classList.remove("show"); setTimeout(() => { if (!b.classList.contains("show")) b.hidden = true }, 250) }, hintText ? 1600 : 3200);
   }
-  $("bubble").addEventListener("click", () => { $("bubble").classList.remove("show"); setTimeout(() => $("bubble").hidden = true, 250) });
+
+  /* 3秒に1回ぴょんと跳ねて「僕を2回タップすると・・・」 */
+  setTimeout(() => setInterval(() => {
+    if (document.hidden) return;
+    const w = document.querySelector(".lionwrap");
+    if (!RM.matches) { w.classList.remove("hop"); void w.offsetWidth; w.classList.add("hop") }
+    speak("僕を2回タップすると・・・");
+  }, 3000), 1400);
+  $("bubble").addEventListener("click", () => { talking = false; $("bubble").classList.remove("show"); setTimeout(() => $("bubble").hidden = true, 250) });
   function confetti() {
     if (RM.matches) return;
     const c = $("fx"), x = c.getContext("2d"), dpr = devicePixelRatio || 1; c.hidden = false;
