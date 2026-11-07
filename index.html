@@ -108,6 +108,10 @@
   .tag{font-size:10px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--red)}
   .arrow{margin-left:auto; color:#c9b8b0; font-size:22px; transition:transform .25s var(--ease), color .25s; flex:none}
   .tile.hide{display:none}
+  .upd{display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;font-weight:500;line-height:1;padding:3px 8px 3px 6px;border-radius:999px;
+    color:var(--tc);background:color-mix(in srgb,var(--tc) 10%,transparent);font-variant-numeric:tabular-nums}
+  .upd svg{width:11px;height:11px;flex:none}
+  .upd:empty{display:none}
   .ripple{position:absolute;border-radius:50%;pointer-events:none;background:var(--tc);opacity:.18;transform:scale(0);z-index:-1}
   .empty{display:none;text-align:center;color:var(--sub);padding:30px 0;font-size:14px}
   .empty.show{display:block;animation:fadeup .3s var(--ease)}
@@ -230,25 +234,25 @@
       name: "レンタル開始・返却",
       desc: "返却・開始・在庫・代車・保険加入のカレンダー（会社のアカウントで開いてください）",
       url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbyrT3DLg7IobV5U_rFjd5XfcYGqg7mLNTYx3OiNpBpz-h5jZ24LMbHwKbcwGxJtUNFz/exec",
-      color:"#DB5426", icon:"calendar"
+      color:"#DB5426", icon:"calendar", updKey:"rental"
     },
     {
       name: "出張整備ボード",
       desc: "出張整備の依頼・訪問予定・定期点検と、車両ごとの申し送りを確認（会社のアカウントで開いてください）",
       url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbxOcW3zEgKCispJ7NTKErwAlnJciiq_SxQWKGk8GO6y9q38xnACr6FWnZgA_FZbCaH2ug/exec",
-      color:"#E2571D", icon:"truck"
+      color:"#E2571D", icon:"truck", updKey:"shutcho"
     },
     {
       name: "領収書依頼ボード",
       desc: "領収書の作成・送付依頼を入れて、作成済み・送付済みを確認（会社のアカウントで開いてください）",
       url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycby3INto8JJfWc9GDzKwIAZBlIk0Wj00TWXOgEdNsTKvmDEpblSAnAv9cfDL636nfL3-oA/exec",
-      color:"#8A5A2B", icon:"receipt"
+      color:"#8A5A2B", icon:"receipt", updKey:"receipt"
     },
     {
       name: "金額変更ボード",
       desc: "お客様のプラン・オプション・決済方法の変更を入れて、請求書システムへの反映を確認（会社のアカウントで開いてください）",
       url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbzoUEvFxHQmJYn83cyRBcUYZXvciXU9UAF-BvzLbYXUceVk4S-UBN0bWrIMNPLxrg1ptA/exec",
-      color:"#9C3D1E", icon:"yen"
+      color:"#9C3D1E", icon:"yen", updKey:"kingaku"
     },
     {
       name: "整備記録（前の画面）",
@@ -332,10 +336,31 @@
     el.innerHTML =
       '<span class="glare"></span>' +
       '<div class="ico' + (recent === a.name ? ' recent' : '') + '" style="background:' + a.color + '">' + (ICONS[a.icon] || ICONS.app) + '</div>' +
-      '<div><h2><span class="nm">' + a.name + '</span>' + (recent === a.name ? '<span class="tag">前回ひらいた</span>' : '') + '</h2><p>' + a.desc + '</p></div>' +
+      '<div><h2><span class="nm">' + a.name + '</span>' + (recent === a.name ? '<span class="tag">前回ひらいた</span>' : '') + '</h2><p>' + a.desc + '</p>' + (a.updKey ? '<span class="upd" data-upd="' + a.updKey + '"></span>' : '') + '</div>' +
       '<span class="arrow">›</span>';
     grid.appendChild(el);
   });
+
+  /* 最終更新：各ボードのスプレッドシートが最後に更新された時刻（GAS「ポータル更新日時」から読む。開いた時刻ではない） */
+  const UPDATED_URL = "https://script.google.com/macros/s/AKfycbyUH3lGRd-VjoMQOqXGx7xlpSnUhWIrlJxWZ-mJjXlz8TN2_dnUhpvoDwRrU9hd0yPD/exec";
+  const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function updLabel(t) {
+    const d = new Date(t), now = new Date(), hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((day(now) - day(d)) / 864e5);
+    return "最終更新 " + (diff === 0 ? "今日 " : diff === 1 ? "昨日 " : (d.getMonth() + 1) + "/" + d.getDate() + " ") + hm;
+  }
+  function loadUpdated() {
+    fetch(UPDATED_URL).then(r => r.ok ? r.json() : {}).then(u => {
+      document.querySelectorAll("[data-upd]").forEach(e => {
+        const t = u && u[e.dataset.upd];
+        e.innerHTML = t ? CLOCK_SVG + updLabel(t) : "";
+      });
+    }).catch(() => {});
+  }
+  loadUpdated();
+  setInterval(() => { if (document.visibilityState === "visible") loadUpdated() }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadUpdated() });
 
   /* 押したとき：波紋・ブルッ・トースト・前回ひらいたを記録 */
   grid.addEventListener("pointerdown", e => {
