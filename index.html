@@ -165,6 +165,26 @@
     .ico.recent::after{content:"";position:absolute;inset:0;border-radius:14px;animation:pulse 1.8s ease-out 1s 2}
   }
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  /* ★と見出し */
+  .grid{grid-template-columns:1fr 1fr; gap:10px}
+  a.tile:not(.small){grid-column:1/-1}
+  @media (min-width:640px){ .grid{grid-template-columns:repeat(4,1fr)} a.tile:not(.small){grid-column:span 2} }
+  .cat{grid-column:1/-1; font-size:12px; font-weight:700; color:var(--sub); margin:8px 2px -4px}
+  .cat[hidden]{display:none}
+  .star{all:unset; cursor:pointer; flex:none; margin-left:auto; font-size:21px; line-height:1; padding:7px; border-radius:9px; color:#c9b8b0; position:relative; z-index:1}
+  .star.on{color:#F2A33A}
+  .star:focus-visible{outline:3px solid var(--orange)}
+  @media (hover:hover){ .star:hover{background:color-mix(in srgb,var(--orange) 14%,transparent)} }
+  .tile .arrow{margin-left:2px}
+  a.tile.small{padding:9px 6px 9px 10px; gap:9px; border-radius:12px; border-left-width:4px}
+  a.tile.small .ico{flex-basis:30px; height:30px; border-radius:9px}
+  a.tile.small .ico svg{width:17px; height:17px}
+  a.tile.small > div:not(.ico){min-width:0}
+  a.tile.small h2{font-size:12.5px; line-height:1.35; text-wrap:balance}
+  .grid.ready a.tile:not(.launch){animation:none}
+  a.tile.small p, a.tile.small .arrow, a.tile.small .upd, a.tile.small .tag{display:none}
+  a.tile.small .star{font-size:17px; padding:5px}
 </style>
 </head>
 <body>
@@ -204,8 +224,9 @@
 
 <script>
   // ▼ アプリを増やすときは、ここに1行（{ ... },）を足すだけでOKです
-  // ※並び順のルール（2026/10/24 梶原翔の指示）：先頭は「マスタ検索」→「整備記録」の順で固定。
-  //   この2つの順番を変えるときは、翔に確認してから変えてください。
+  // ※並び方（2026/11/11 梶原翔の指示で変更）：★の付いたアプリが上に大きく出て、ほかは見出し（CATS）ごとに小さく並ぶ。
+  //   最初の★は「整備記録」「レンタル開始・返却」（DEFAULT_STARS）。★は端末ごとに覚える。
+  //   アプリを足したら、下の CATS にも見出しを1行足してください（無いと「そのほか」に入ります）。
   const APPS = [
     {
       name: "マスタ検索",
@@ -345,9 +366,55 @@
       '<span class="glare"></span>' +
       '<div class="ico' + (recent === a.name ? ' recent' : '') + '" style="background:' + a.color + '">' + (ICONS[a.icon] || ICONS.app) + '</div>' +
       '<div><h2><span class="nm">' + a.name + '</span>' + (recent === a.name ? '<span class="tag">前回ひらいた</span>' : '') + '</h2><p>' + a.desc + '</p>' + (a.updKey ? '<span class="upd" data-upd="' + a.updKey + '"></span>' : '') + '</div>' +
-      '<span class="arrow">›</span>';
+      '<button class="star" type="button">☆</button><span class="arrow">›</span>';
     grid.appendChild(el);
   });
+
+  /* ★を付けたアプリは上に大きく、ほかは見出しごとに小さく並べる（★は端末ごとに覚える） */
+  const CAT_ORDER = ["車両・お客様", "お金", "事故"];
+  const CATS = {
+    "マスタ検索": "車両・お客様", "整備記録": "車両・お客様", "レンタル開始・返却": "車両・お客様", "出張整備ボード": "車両・お客様",
+    "お客様マスタ（お試し）": "車両・お客様", "整備記録（前の画面）": "車両・お客様",
+    "請求書システム": "お金", "領収書依頼ボード": "お金", "金額変更ボード": "お金",
+    "事故管理": "事故"
+  };
+  const DEFAULT_STARS = ["整備記録", "レンタル開始・返却"];
+  function getStars() { const v = store.get("rod-stars", null); return Array.isArray(v) ? v : DEFAULT_STARS.slice() }
+  function syncCats() {
+    grid.querySelectorAll(".cat").forEach(h => { h.hidden = !grid.querySelector('.tile.small:not(.hide)[data-cat="' + h.dataset.cat + '"]') });
+  }
+  function layout() {
+    const stars = getStars(), by = {};
+    grid.querySelectorAll(".tile").forEach(t => by[t.dataset.name] = t);
+    grid.querySelectorAll(".cat").forEach(x => x.remove());
+    const frag = document.createDocumentFragment();
+    const put = (a, on, c) => {
+      const t = by[a.name], st = t.querySelector(".star");
+      t.classList.toggle("small", !on); if (c) t.dataset.cat = c; else delete t.dataset.cat;
+      st.textContent = on ? "★" : "☆"; st.classList.toggle("on", on);
+      st.setAttribute("aria-label", a.name + (on ? " の★を外す" : " に★を付けて上に出す"));
+      frag.appendChild(t);
+    };
+    APPS.filter(a => stars.includes(a.name)).forEach(a => put(a, true));
+    CAT_ORDER.concat(["そのほか"]).forEach(c => {
+      const list = APPS.filter(a => !stars.includes(a.name) && (CATS[a.name] || "そのほか") === c);
+      if (!list.length) return;
+      const h = document.createElement("div"); h.className = "cat"; h.dataset.cat = c; h.textContent = c; frag.appendChild(h);
+      list.forEach(a => put(a, false, c));
+    });
+    grid.appendChild(frag); syncCats();
+  }
+  layout();
+  grid.addEventListener("pointerdown", e => { if (e.target.closest(".star")) e.stopPropagation() }, true);
+  grid.addEventListener("click", e => {
+    const st = e.target.closest(".star"); if (!st) return;
+    e.preventDefault(); e.stopPropagation();
+    const name = st.closest(".tile").dataset.name; let stars = getStars();
+    const on = !stars.includes(name);
+    stars = on ? stars.concat([name]) : stars.filter(x => x !== name);
+    store.set("rod-stars", stars); buzz(10); grid.classList.add("ready"); layout();
+    toast("<b>" + name + "</b> " + (on ? "を上に出しました" : "の★を外しました"));
+  }, true);
 
   /* 最終更新：各ボードのスプレッドシートが最後に更新された時刻（GAS「ポータル更新日時」から読む。開いた時刻ではない） */
   const UPDATED_URL = "https://script.google.com/macros/s/AKfycbyUH3lGRd-VjoMQOqXGx7xlpSnUhWIrlJxWZ-mJjXlz8TN2_dnUhpvoDwRrU9hd0yPD/exec";
@@ -428,6 +495,7 @@
     });
     $("empty").classList.toggle("show", n === 0);
   });
+  q.addEventListener("input", syncCats);
   q.addEventListener("keydown", e => {
     if (e.key === "Enter") { const f = document.querySelector(".tile:not(.hide)"); if (f) f.click() }
     if (e.key === "Escape") { q.value = ""; q.dispatchEvent(new Event("input")); q.blur() }
