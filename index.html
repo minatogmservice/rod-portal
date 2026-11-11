@@ -299,12 +299,6 @@
       desc: "アプリの利用登録の承認・利用者コードの発行・アプリごとの許可／禁止・停止（管理を許可された人だけ開けます）",
       url:  "https://script.google.com/macros/s/AKfycbw3BIX-ycfsKqI_49wI0WZ1s-9qv_fwkNZAPucVCIOu15slcwKWgZGshFGU0liv8Q3qkg/exec",
       color:"#231917", icon:"key"
-    },
-    {
-      name: "アプリ利用登録",
-      desc: "社内アプリを使うための登録フォーム。ふだん使う Google アカウントでログインして送ってください",
-      url:  "https://docs.google.com/forms/d/e/1FAIpQLSd6-6hc-nPOdjbDgqJ5ncO_UA4QpDHB3FPxhCxHW7HE1OH3BQ/viewform",
-      color:"#E2571D", icon:"form"
     }
   ];
 
@@ -339,7 +333,6 @@
     box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
     alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
     key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2"/></svg>',
-    form:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
     app:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>'
   };
 
@@ -399,7 +392,7 @@
     "請求書システム": "お金", "領収書依頼ボード": "お金", "金額変更ボード": "お金",
     "部品発注": "部品",
     "事故管理": "事故",
-    "利用者管理": "管理", "アプリ利用登録": "管理"
+    "利用者管理": "管理"
   };
   const DEFAULT_STARS = ["整備記録", "レンタル開始・返却"];
   function getStars() { const v = store.get("rod-stars", null); return Array.isArray(v) ? v : DEFAULT_STARS.slice() }
