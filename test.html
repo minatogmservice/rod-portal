@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RODポータル</title>
+<!-- 検索エンジンに載せない -->
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<!-- iPhone ホーム画面用 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RODポータル">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<!-- Android / PC 用 -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="theme-color" content="#231917">
+<style>
+  :root{
+    --dark:#231917; --orange:#D87D3C; --red:#DB5426; --cream:#FFF8EE;
+    --bg:var(--cream); --card:#ffffff; --text:#231917; --sub:#7a6a64; --line:#eadfd3; --soft:#fbeee2;
+    --shadow:0 1px 2px rgba(35,25,23,.08),0 4px 14px rgba(35,25,23,.06);
+    --shadow-up:0 2px 4px rgba(35,25,23,.1),0 14px 30px rgba(35,25,23,.14);
+    --ease:cubic-bezier(.2,.8,.2,1); --spring:cubic-bezier(.34,1.56,.64,1);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#17110f; --card:#241c19; --text:#f6ece4; --sub:#b4a49c; --line:#3a2d28; --soft:#33241d;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3); --shadow-up:0 2px 4px rgba(0,0,0,.4),0 14px 30px rgba(0,0,0,.5); color-scheme:dark}
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overscroll-behavior-y:contain}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* 引っ張って更新 */
+  .ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);z-index:40;width:40px;height:40px;margin-left:-20px;border-radius:50%;
+    background:var(--card);box-shadow:var(--shadow-up);display:grid;place-items:center;transform:translateY(-70px);color:var(--red)}
+  .ptr svg{width:22px;height:22px}
+  .ptr.spin svg{animation:spin .7s linear infinite}
+
+  /* ヘッダー */
+  header{
+    position:relative; overflow:hidden;
+    background:var(--dark); color:#fff;
+    padding:calc(env(safe-area-inset-top) + 26px) max(20px,env(safe-area-inset-right)) 26px max(20px,env(safe-area-inset-left));
+  }
+  header .logo-bg{position:absolute; right:70px; top:6%; height:96%; pointer-events:none; overflow:visible}
+  .logo-bg .p{transform-box:fill-box; transform-origin:center}
+  @media (max-width:520px){ header .logo-bg{right:24px; opacity:.55} }
+  .logo-bg .r{fill:var(--red)} .logo-bg .o{fill:var(--orange)} .logo-bg .k{fill:#3b2b27}
+  .head-inner{position:relative; z-index:1; display:flex; align-items:center; gap:14px; max-width:720px; margin:0 auto; padding-right:96px}
+  .head-inner .mark{height:46px; background:#fff; border-radius:10px; padding:5px 7px; flex:none}
+  .head-inner h1{font-size:22px; letter-spacing:.06em}
+  .head-inner p{font-size:12px; opacity:.75; margin-top:2px}
+  .head-inner p.updated{font-size:10.5px; opacity:.6; margin-top:1px}
+  .greet{font-size:13px;font-weight:700;opacity:.95;margin-bottom:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .clock{font-variant-numeric:tabular-nums;font-weight:500;opacity:.7}
+  .net{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;background:rgba(255,255,255,.12);padding:1px 7px;border-radius:999px}
+  .net i{width:6px;height:6px;border-radius:50%;background:#5fd18a;display:inline-block}
+  .net.off i{background:#ff6b5b}
+  .lionwrap{position:absolute; z-index:2; right:14px; bottom:-6px; height:96px}
+  .lion{display:block; height:96px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35)); transform-origin:50% 100%; cursor:pointer;touch-action:manipulation}
+
+  main{max-width:720px; margin:0 auto; padding:18px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+
+  /* 検索 */
+  .search{position:relative;margin-bottom:14px}
+  .search input{width:100%;font:inherit;font-size:15px;padding:12px 40px 12px 42px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--text);
+    box-shadow:var(--shadow);transition:border-color .2s,box-shadow .2s}
+  .search input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 4px color-mix(in srgb,var(--orange) 22%,transparent)}
+  .search svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--sub);pointer-events:none}
+  .search kbd{position:absolute;right:12px;top:50%;transform:translateY(-50%);font:11px ui-monospace,monospace;color:var(--sub);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  @media (hover:none){.search kbd{display:none}}
+
+  /* タイル */
+  .grid{display:grid; grid-template-columns:1fr; gap:14px}
+  @media (min-width:640px){ .grid{grid-template-columns:1fr 1fr} }
+  a.tile{
+    position:relative; overflow:hidden; isolation:isolate;
+    display:flex; align-items:center; gap:16px; text-decoration:none; color:inherit;
+    background:var(--card); border-radius:16px; padding:18px;
+    box-shadow:var(--shadow);
+    border-left:6px solid var(--orange);
+    transition:transform .25s var(--ease), box-shadow .25s var(--ease), opacity .25s;
+    will-change:transform;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+  }
+  a.tile:active{transform:scale(.97)}
+  a.tile:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+  a.tile .glare{position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:0;transition:opacity .25s;
+    background:radial-gradient(240px circle at var(--gx,50%) var(--gy,50%),color-mix(in srgb,var(--tc) 16%,transparent),transparent 70%)}
+  @media (hover:hover){
+    a.tile:hover{box-shadow:var(--shadow-up)}
+    a.tile:hover .glare{opacity:1}
+    a.tile:hover .ico{transform:rotate(-8deg) scale(1.08)}
+    a.tile:hover .arrow{transform:translateX(5px);color:var(--tc)}
+  }
+  .ico{flex:0 0 52px; height:52px; border-radius:14px; display:grid; place-items:center; color:#fff; transition:transform .35s var(--spring); position:relative}
+  .ico svg{width:28px; height:28px}
+  .tile h2{font-size:17px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tile h2 mark{background:color-mix(in srgb,var(--orange) 28%,transparent);color:inherit;border-radius:3px}
+  .tile p{font-size:12.5px; color:var(--sub); margin-top:3px; line-height:1.5}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--red)}
+  .arrow{margin-left:auto; color:#c9b8b0; font-size:22px; transition:transform .25s var(--ease), color .25s; flex:none}
+  .tile.hide{display:none}
+  .upd{display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;font-weight:500;line-height:1;padding:3px 8px 3px 6px;border-radius:999px;
+    color:var(--tc);background:color-mix(in srgb,var(--tc) 10%,transparent);font-variant-numeric:tabular-nums}
+  .upd svg{width:11px;height:11px;flex:none}
+  .upd:empty{display:none}
+  .ripple{position:absolute;border-radius:50%;pointer-events:none;background:var(--tc);opacity:.18;transform:scale(0);z-index:-1}
+  .empty{display:none;text-align:center;color:var(--sub);padding:30px 0;font-size:14px}
+  .empty.show{display:block;animation:fadeup .3s var(--ease)}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,20px);opacity:0;z-index:50;
+    background:var(--dark);color:#fff;font-size:14px;font-weight:700;padding:11px 18px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);
+    transition:transform .3s var(--spring),opacity .25s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+  .toast.show{transform:translate(-50%,0);opacity:1}
+  .toast b{color:var(--orange)}
+
+  /* ライオンの吹き出し */
+  .bubble{position:fixed;z-index:65;max-width:min(300px,calc(100vw - 24px));background:#fff;color:#231917;font-size:19px;font-weight:800;line-height:1.4;
+    padding:12px 18px;border-radius:20px;border:3px solid #231917;box-shadow:4px 4px 0 var(--orange);opacity:0;transform:scale(.6) translateY(10px);transform-origin:var(--tail,80%) 100%;
+    transition:opacity .2s,transform .3s var(--spring);cursor:pointer}
+  .bubble::after{content:"";position:absolute;bottom:-14px;left:var(--tail,80%);width:20px;height:20px;background:#fff;border-right:3px solid #231917;border-bottom:3px solid #231917;
+    transform:translateX(-50%) rotate(35deg) skewX(-10deg)}
+  .bubble.show{opacity:1;transform:none}
+  .bubble.hint{font-size:15px;padding:8px 14px;border-width:2px;box-shadow:3px 3px 0 var(--orange)}
+  .bubble.hint::after{width:14px;height:14px;bottom:-10px;border-width:2px}
+  footer{text-align:center; font-size:11px; color:var(--sub); padding:10px 0 calc(env(safe-area-inset-bottom) + 20px)}
+  footer .tip{display:block;margin-bottom:4px;opacity:.8}
+  footer .kaizen{display:block;margin-bottom:6px;color:var(--sub);text-decoration:underline;text-underline-offset:2px}
+  canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
+
+  /* 動き */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes launch{0%{transform:scale(1)}35%{transform:scale(.95)}70%{transform:scale(1.03)}100%{transform:scale(1)}}
+  @keyframes rip{to{transform:scale(2.8);opacity:0}}
+  @keyframes slideIn{from{transform:translate(180px,-60px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes hop{0%,100%{transform:translateY(0)}30%{transform:translateY(-14px) scaleY(1.04)}58%{transform:translateY(0) scaleY(.94) scaleX(1.04)}78%{transform:translateY(-4px)}}
+  @keyframes lionIn{0%{transform:translateY(110%) rotate(8deg)}60%{transform:translateY(-6%) rotate(-3deg)}100%{transform:none}}
+  @keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg)}}
+  @keyframes roar{0%{transform:scale(1)}20%{transform:scale(1.18) rotate(-6deg)}40%{transform:scale(1.1) rotate(5deg)}60%{transform:scale(1.14) rotate(-3deg)}100%{transform:scale(1)}}
+  @keyframes rise{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tc) 55%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+  @media (prefers-reduced-motion:no-preference){
+    .logo-bg .o{animation:slideIn .7s var(--ease) both .05s}
+    .logo-bg .r{animation:slideIn .7s var(--ease) both .15s}
+    .logo-bg .k{animation:slideIn .7s var(--ease) both .25s}
+    .lionwrap{transform-origin:50% 100%}
+    .lionwrap.hop{animation:hop .65s ease-in-out}
+    .lion{animation:lionIn .8s var(--spring) both .3s, sway 5s ease-in-out 1.2s infinite}
+    .lion.roar{animation:roar .7s var(--spring)}
+    .head-inner{animation:fadeup .5s var(--ease) both}
+    .search{animation:fadeup .5s var(--ease) both .1s}
+    a.tile{animation:rise .5s var(--ease) both;animation-delay:calc(.18s + var(--i) * .07s)}
+    a.tile.launch{animation:launch .5s var(--ease)}
+    .ripple{animation:rip .6s var(--ease) forwards}
+    .ico.recent::after{content:"";position:absolute;inset:0;border-radius:14px;animation:pulse 1.8s ease-out 1s 2}
+  }
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  /* ★と見出し */
+  .grid{grid-template-columns:1fr 1fr; gap:10px}
+  a.tile:not(.small){grid-column:1/-1}
+  @media (min-width:640px){ .grid{grid-template-columns:repeat(4,1fr)} a.tile:not(.small){grid-column:span 2} }
+  .cat{grid-column:1/-1; font-size:12px; font-weight:700; color:var(--sub); margin:8px 2px -4px}
+  .cat[hidden]{display:none}
+  .star{all:unset; cursor:pointer; flex:none; margin-left:auto; font-size:21px; line-height:1; padding:7px; border-radius:9px; color:#c9b8b0; position:relative; z-index:1}
+  .star.on{color:#F2A33A}
+  .star:focus-visible{outline:3px solid var(--orange)}
+  @media (hover:hover){ .star:hover{background:color-mix(in srgb,var(--orange) 14%,transparent)} }
+  .tile .arrow{margin-left:2px}
+  a.tile.small{padding:9px 6px 9px 10px; gap:9px; border-radius:12px; border-left-width:4px}
+  a.tile.small .ico{flex-basis:30px; height:30px; border-radius:9px}
+  a.tile.small .ico svg{width:17px; height:17px}
+  a.tile.small > div:not(.ico){min-width:0}
+  a.tile.small h2{font-size:12.5px; line-height:1.35; text-wrap:balance}
+  .grid.ready a.tile:not(.launch){animation:none}
+  a.tile.small p, a.tile.small .arrow, a.tile.small .upd, a.tile.small .tag{display:none}
+  a.tile.small .star{font-size:17px; padding:5px}
+</style>
+</head>
+<body>
+<div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg></div>
+<header>
+  <svg class="logo-bg" viewBox="80 150 1440 1475" aria-hidden="true">
+    <path class="p r" d="M348 670 L561 578 L310 1515 L98 1605 Z"/>
+    <path class="p o" d="M1047 368 L1501 171 L1216 1120 L795 1303 Z"/>
+    <path class="p k" d="M680 342 L1051 343 L713 1603 L342 1603 Z"/>
+    <path class="p k" d="M1097 393 C1290 422 1420 530 1460 700 C1495 850 1455 1070 1237 1157 L1464 1603 L1138 1603 L899 1133 L951 937 C1010 958 1110 945 1150 835 C1190 725 1100 640 1035 623 Z"/>
+  </svg>
+  <div class="head-inner">
+    <img class="mark" src="logo-mark.png" alt="ROD">
+    <div>
+      <div class="greet"><span id="greet">こんにちは</span><span class="clock" id="clock"></span><span class="net" id="net"><i></i><span>オンライン</span></span></div>
+      <h1>RODポータル <span style="font-size:12px;background:#F2A33A;color:#231815;border-radius:6px;padding:2px 8px;vertical-align:middle;white-space:nowrap">テスト</span></h1>
+      <p>業務アプリの入口</p>
+      <p class="updated">最終更新：2026年10月</p>
+    </div>
+  </div>
+  <span class="lionwrap"><img class="lion" id="lion" src="lion.png" alt="" title="2回タップしてみて"></span>
+</header>
+
+<main>
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="q" type="search" placeholder="アプリを探す（例：領収書）" aria-label="アプリを探す" autocomplete="off">
+    <kbd>/</kbd>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">見つかりませんでした</div>
+</main>
+<footer><span class="tip" id="tip"></span><a class="kaizen" href="https://script.google.com/a/macros/minato-rod.com/s/AKfycbwM8xontAfAsWuEnShOh4IA0WlQ_spGQFfwhtguF34WbKDhjutxGqJfUwbC0akNHdNh/exec?page=RODポータル">改善依頼</a>© ROD Co.,Ltd.</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="bubble" id="bubble" role="status" hidden></div>
+<canvas id="fx" hidden></canvas>
+
+<script>
+  // ▼ アプリを増やすときは、ここに1行（{ ... },）を足すだけでOKです
+  // ※並び順のルール（2026/10/24 梶原翔の指示）：先頭は「マスタ検索」→「整備記録」の順で固定。
+  //   この2つの順番を変えるときは、翔に確認してから変えてください。
+  const APPS = [
+    {
+      name: "マスタ検索",
+      desc: "顧客・車両・部品マスタをすばやく検索（ひらがな・部分入力OK／会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbyBB397j8UM6NDbtELqAmKv0vLJzl5-hjAtiZCmpQjlMbj7tEosMqvx0iuWybmkYXEuvw/exec",
+      color:"#231917", icon:"search"
+    },
+    {
+      name: "整備記録",
+      desc: "車両ごとの整備内容を記録・確認。写真も残せます（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbyC_-mS5yg1OS10sYMZPj2FLaLrvsbkhFTUA28EGX6sBhcnVKg9BMqPXshXspGY7kp6OA/exec?app=new",
+      color:"#D87D3C", icon:"wrench"
+    },
+    {
+      name: "請求書システム",
+      desc: "見積書・請求書・領収書の作成と発行（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbwm5spYaIHNI8LcTERw_RcpEWa0JQOzFeL2TGXvue-55QD2ZHaEOU6tYy_Q6tR8hkqFuA/exec",
+      color:"#B8612A", icon:"invoice"
+    },
+    {
+      name: "お客様マスタ（お試し）",
+      desc: "お客様と契約を探す・登録する・解約やナンバー交換をする（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbyJZZlh3XVgD3rLp-u7-99vn1ZmdF7JMLb6-ZyXjX-UWOjY3ZLPCu5SeWaufqYwo44LhA/exec",
+      color:"#5B3A29", icon:"users"
+    },
+    {
+      name: "レンタル開始・返却",
+      desc: "返却・開始・在庫・代車・保険加入のカレンダー（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbyrT3DLg7IobV5U_rFjd5XfcYGqg7mLNTYx3OiNpBpz-h5jZ24LMbHwKbcwGxJtUNFz/exec",
+      color:"#DB5426", icon:"calendar", updKey:"rental"
+    },
+    {
+      name: "出張整備ボード",
+      desc: "出張整備の依頼・訪問予定・定期点検と、車両ごとの申し送りを確認（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbxOcW3zEgKCispJ7NTKErwAlnJciiq_SxQWKGk8GO6y9q38xnACr6FWnZgA_FZbCaH2ug/exec",
+      color:"#E2571D", icon:"truck", updKey:"shutcho"
+    },
+    {
+      name: "領収書依頼ボード",
+      desc: "領収書の作成・送付依頼を入れて、作成済み・送付済みを確認（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycby3INto8JJfWc9GDzKwIAZBlIk0Wj00TWXOgEdNsTKvmDEpblSAnAv9cfDL636nfL3-oA/exec",
+      color:"#8A5A2B", icon:"receipt", updKey:"receipt"
+    },
+    {
+      name: "金額変更ボード",
+      desc: "お客様のプラン・オプション・決済方法の変更を入れて、請求書システムへの反映を確認（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbzoUEvFxHQmJYn83cyRBcUYZXvciXU9UAF-BvzLbYXUceVk4S-UBN0bWrIMNPLxrg1ptA/exec",
+      color:"#9C3D1E", icon:"yen", updKey:"kingaku"
+    },
+    {
+      name: "事故管理",
+      desc: "事故案件の進捗・相手保険の担当者・協定金額と、お客様の事故報告を確認（会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbzuIRxwPvjcabzp6L69JA9Yg2VkiiSNCbB12Rkox2JHLTJVka9qP4Oo0U9glj_JNolE/exec",
+      color:"#B3261E", icon:"alert"
+    },
+    {
+      name: "整備記録（前の画面）",
+      desc: "新しい整備記録に切り替える前の画面。困ったときはこちらでも記録できます（保存先は同じです）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbzobUtZ3nPrUSRq3ix-c3MaGl9BrW4j69l45DJn2WnvMM3m1l9UY09CQLUKxPnFvP33_g/exec?app=old",
+      color:"#8A817A", icon:"wrench"
+    }
+  ];
+
+  // ▼ ライオンを2回タップしたときのセリフ。1行ずつ足したり消したりできます（毎回ランダムで1つ）
+  //   {レンタル台数} と {今日の予定} は、毎朝9時前に lion-data.json から自動で入ります
+  //   （レンタル台数＝MGMS一括帳簿「レンタル管理」B3、今日の予定＝Googleカレンダーのその日の件数）
+  const LION_LINES = [
+    "Run Or Die！走るか死ぬかだオン！",
+    "今日も頑張るオン！",
+    "整備記録、書き忘れてオン？",
+    "現在のレンタル総台数は{レンタル台数}台だオン！",
+    "今日の予定は{今日の予定}件だオン！",
+    "僕の名前ツェペリだオン！"
+  ];
+  let LION_DATA = {};
+  fetch("lion-data.json?t=" + Date.now()).then(r => r.ok ? r.json() : {}).then(d => { LION_DATA = d || {} }).catch(() => {});
+  function lionLines() {
+    const d = new Date(), today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const vals = { "レンタル台数": LION_DATA.rental, "今日の予定": LION_DATA.date === today ? LION_DATA.today : undefined };
+    return LION_LINES.map(t => t.replace(/\{(.+?)\}/g, (m, k) => vals[k] ?? "\u0000")).filter(t => !t.includes("\u0000"));
+  }
+
+  const ICONS = {
+    calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+    wrench:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>',
+    search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+    invoice:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+    receipt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
+    truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7z"/><circle cx="5.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>',
+    yen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l6 8 6-8M12 11v10M7 12h10M7 16h10"/></svg>',
+    users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>',
+    alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    app:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>'
+  };
+
+  const RM = matchMedia("(prefers-reduced-motion: reduce)");
+  const $ = id => document.getElementById(id);
+  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms) } catch (e) {} };
+  const store = {
+    get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch (e) { return d } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} }
+  };
+  const norm = s => (s || "").normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+
+  /* toast */
+  function toast(html, ms = 2200) {
+    const t = $("toast"); t.innerHTML = html; t.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), ms);
+  }
+
+  /* あいさつ・時計・回線 */
+  function tick() {
+    const d = new Date(), h = d.getHours(), W = "日月火水木金土";
+    $("greet").textContent = h < 5 ? "夜遅くまでおつかれさま" : h < 11 ? "おはようございます" : h < 17 ? "こんにちは" : "おつかれさまです";
+    $("clock").textContent = (d.getMonth() + 1) + "/" + d.getDate() + "（" + W[d.getDay()] + "）" + String(h).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  tick(); setInterval(tick, 15000);
+  function net() { const on = navigator.onLine; $("net").classList.toggle("off", !on); $("net").lastChild.textContent = on ? "オンライン" : "オフライン" }
+  net();
+  addEventListener("online", () => { net(); toast("回線が<b>つながりました</b>") });
+  addEventListener("offline", () => { net(); toast("<b>オフライン</b>です。電波を確認してください", 3500) });
+
+  /* タイル */
+  const recent = store.get("rod-recent", "");
+  const grid = document.getElementById("grid");
+  APPS.forEach((a, i) => {
+    const el = document.createElement("a");
+    el.className = "tile";
+    el.href = a.url;
+    el.target = "_blank";          // 別画面で開く（iPhoneは「完了」でポータルに戻れます）
+    el.rel = "noopener";
+    el.style.borderLeftColor = a.color;
+    el.style.setProperty("--tc", a.color);
+    el.style.setProperty("--i", i);
+    el.dataset.name = a.name;
+    el.innerHTML =
+      '<span class="glare"></span>' +
+      '<div class="ico' + (recent === a.name ? ' recent' : '') + '" style="background:' + a.color + '">' + (ICONS[a.icon] || ICONS.app) + '</div>' +
+      '<div><h2><span class="nm">' + a.name + '</span>' + (recent === a.name ? '<span class="tag">前回ひらいた</span>' : '') + '</h2><p>' + a.desc + '</p>' + (a.updKey ? '<span class="upd" data-upd="' + a.updKey + '"></span>' : '') + '</div>' +
+      '<button class="star" type="button">☆</button><span class="arrow">›</span>';
+    grid.appendChild(el);
+  });
+
+  /* ★を付けたアプリは上に大きく、ほかは見出しごとに小さく並べる（★は端末ごとに覚える） */
+  const CAT_ORDER = ["車両・お客様", "お金", "事故"];
+  const CATS = {
+    "マスタ検索": "車両・お客様", "整備記録": "車両・お客様", "レンタル開始・返却": "車両・お客様", "出張整備ボード": "車両・お客様",
+    "お客様マスタ（お試し）": "車両・お客様", "整備記録（前の画面）": "車両・お客様",
+    "請求書システム": "お金", "領収書依頼ボード": "お金", "金額変更ボード": "お金",
+    "事故管理": "事故"
+  };
+  const DEFAULT_STARS = ["整備記録", "レンタル開始・返却"];
+  function getStars() { const v = store.get("rod-stars", null); return Array.isArray(v) ? v : DEFAULT_STARS.slice() }
+  function syncCats() {
+    grid.querySelectorAll(".cat").forEach(h => { h.hidden = !grid.querySelector('.tile.small:not(.hide)[data-cat="' + h.dataset.cat + '"]') });
+  }
+  function layout() {
+    const stars = getStars(), by = {};
+    grid.querySelectorAll(".tile").forEach(t => by[t.dataset.name] = t);
+    grid.querySelectorAll(".cat").forEach(x => x.remove());
+    const frag = document.createDocumentFragment();
+    const put = (a, on, c) => {
+      const t = by[a.name], st = t.querySelector(".star");
+      t.classList.toggle("small", !on); if (c) t.dataset.cat = c; else delete t.dataset.cat;
+      st.textContent = on ? "★" : "☆"; st.classList.toggle("on", on);
+      st.setAttribute("aria-label", a.name + (on ? " の★を外す" : " に★を付けて上に出す"));
+      frag.appendChild(t);
+    };
+    APPS.filter(a => stars.includes(a.name)).forEach(a => put(a, true));
+    CAT_ORDER.concat(["そのほか"]).forEach(c => {
+      const list = APPS.filter(a => !stars.includes(a.name) && (CATS[a.name] || "そのほか") === c);
+      if (!list.length) return;
+      const h = document.createElement("div"); h.className = "cat"; h.dataset.cat = c; h.textContent = c; frag.appendChild(h);
+      list.forEach(a => put(a, false, c));
+    });
+    grid.appendChild(frag); syncCats();
+  }
+  layout();
+  grid.addEventListener("pointerdown", e => { if (e.target.closest(".star")) e.stopPropagation() }, true);
+  grid.addEventListener("click", e => {
+    const st = e.target.closest(".star"); if (!st) return;
+    e.preventDefault(); e.stopPropagation();
+    const name = st.closest(".tile").dataset.name; let stars = getStars();
+    const on = !stars.includes(name);
+    stars = on ? stars.concat([name]) : stars.filter(x => x !== name);
+    store.set("rod-stars", stars); buzz(10); grid.classList.add("ready"); layout();
+    toast("<b>" + name + "</b> " + (on ? "を上に出しました" : "の★を外しました"));
+  }, true);
+
+  /* 最終更新：各ボードのスプレッドシートが最後に更新された時刻（GAS「ポータル更新日時」から読む。開いた時刻ではない） */
+  const UPDATED_URL = "https://script.google.com/macros/s/AKfycbyUH3lGRd-VjoMQOqXGx7xlpSnUhWIrlJxWZ-mJjXlz8TN2_dnUhpvoDwRrU9hd0yPD/exec";
+  const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function updLabel(t) {
+    const d = new Date(t), now = new Date(), hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((day(now) - day(d)) / 864e5);
+    return "最終更新 " + (diff === 0 ? "今日 " : diff === 1 ? "昨日 " : (d.getMonth() + 1) + "/" + d.getDate() + " ") + hm;
+  }
+  function loadUpdated() {
+    fetch(UPDATED_URL).then(r => r.ok ? r.json() : {}).then(u => {
+      document.querySelectorAll("[data-upd]").forEach(e => {
+        const t = u && u[e.dataset.upd];
+        e.innerHTML = t ? CLOCK_SVG + updLabel(t) : "";
+      });
+    }).catch(() => {});
+  }
+  loadUpdated();
+  setInterval(() => { if (document.visibilityState === "visible") loadUpdated() }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadUpdated() });
+
+  /* 押したとき：波紋・ブルッ・トースト・前回ひらいたを記録 */
+  grid.addEventListener("pointerdown", e => {
+    const t = e.target.closest(".tile"); if (!t || RM.matches) return;
+    const r = t.getBoundingClientRect(), s = Math.max(r.width, r.height);
+    const rp = document.createElement("span"); rp.className = "ripple";
+    rp.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX - r.left - s / 2}px;top:${e.clientY - r.top - s / 2}px`;
+    t.appendChild(rp); setTimeout(() => rp.remove(), 650);
+  });
+  grid.addEventListener("click", e => {
+    const t = e.target.closest(".tile"); if (!t) return;
+    if (t.dataset.lp) { e.preventDefault(); delete t.dataset.lp; return }
+    buzz(12);
+    t.classList.remove("launch"); void t.offsetWidth; t.classList.add("launch");
+    toast("<b>" + t.dataset.name + "</b> を開いています…");
+    store.set("rod-recent", t.dataset.name);
+    document.querySelectorAll(".tag").forEach(x => x.remove());
+    document.querySelectorAll(".ico.recent").forEach(x => x.classList.remove("recent"));
+    t.querySelector("h2").insertAdjacentHTML("beforeend", '<span class="tag">前回ひらいた</span>');
+  });
+
+  /* 長押しでリンクをコピー */
+  let lpTimer = null;
+  grid.addEventListener("pointerdown", e => {
+    const t = e.target.closest(".tile"); if (!t) return;
+    lpTimer = setTimeout(async () => {
+      t.dataset.lp = "1"; buzz([15, 40, 15]);
+      try { await navigator.clipboard.writeText(t.href); toast("<b>" + t.dataset.name + "</b> のリンクをコピーしました") }
+      catch (err) { toast("リンクをコピーできませんでした") }
+    }, 600);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => grid.addEventListener(ev, () => clearTimeout(lpTimer)));
+  grid.addEventListener("contextmenu", e => { if (e.target.closest(".tile") && matchMedia("(hover:none)").matches) e.preventDefault() });
+
+  /* パソコン：マウスに合わせて少し傾く＋光る */
+  if (matchMedia("(hover:hover)").matches && !RM.matches) {
+    grid.addEventListener("pointermove", e => {
+      const t = e.target.closest(".tile"); if (!t) return;
+      const r = t.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      t.style.setProperty("--gx", x * 100 + "%"); t.style.setProperty("--gy", y * 100 + "%");
+      t.style.transform = `perspective(700px) rotateX(${(0.5 - y) * 6}deg) rotateY(${(x - 0.5) * 8}deg) translateY(-3px)`;
+    });
+    grid.addEventListener("pointerout", e => { const t = e.target.closest(".tile"); if (t && !t.contains(e.relatedTarget)) t.style.transform = "" });
+  }
+
+  /* 検索 */
+  const q = $("q");
+  q.addEventListener("input", () => {
+    const k = norm(q.value); let n = 0;
+    document.querySelectorAll(".tile").forEach(t => {
+      const a = APPS.find(x => x.name === t.dataset.name);
+      const hit = !k || norm(a.name + a.desc).includes(k);
+      t.classList.toggle("hide", !hit); if (hit) n++;
+      const nm = t.querySelector(".nm"), j = norm(a.name).indexOf(k);
+      nm.innerHTML = k && j >= 0 && a.name.length === norm(a.name).length
+        ? a.name.slice(0, j) + "<mark>" + a.name.slice(j, j + k.length) + "</mark>" + a.name.slice(j + k.length) : a.name;
+    });
+    $("empty").classList.toggle("show", n === 0);
+  });
+  q.addEventListener("input", syncCats);
+  q.addEventListener("keydown", e => {
+    if (e.key === "Enter") { const f = document.querySelector(".tile:not(.hide)"); if (f) f.click() }
+    if (e.key === "Escape") { q.value = ""; q.dispatchEvent(new Event("input")); q.blur() }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.target.matches("input")) return;
+    if (e.key === "/") { e.preventDefault(); q.focus() }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 9) { const vis = [...document.querySelectorAll(".tile:not(.hide)")]; if (vis[n - 1]) vis[n - 1].click() }
+  });
+
+  /* ライオンをタップ（2回連続で紙吹雪） */
+  let taps = 0, tapT = null;
+  $("lion").addEventListener("click", () => {
+    const l = $("lion"); l.classList.remove("roar"); void l.offsetWidth; l.classList.add("roar"); buzz(20);
+    taps++; clearTimeout(tapT); tapT = setTimeout(() => taps = 0, 600);
+    if (taps >= 2) { taps = 0; confetti(); speak() }
+  });
+  $("lion").addEventListener("animationend", e => { if (e.animationName === "roar") $("lion").classList.remove("roar") });
+  let lastLine = "", bubbleT = null;
+  let talking = false;
+  function speak(hintText) {
+    const b = $("bubble");
+    if (hintText && talking) return;                 // セリフ中はヒントを出さない
+    let text = hintText;
+    if (!hintText) {
+      const lines = lionLines();
+      let i = Math.floor(Math.random() * lines.length);
+      if (lines.length > 1 && lines[i] === lastLine) i = (i + 1) % lines.length;
+      text = lastLine = lines[i];
+      talking = true;
+    }
+    b.classList.toggle("hint", !!hintText);
+    const r = $("lion").getBoundingClientRect();
+    b.textContent = text;
+    b.hidden = false;
+    const w = b.offsetWidth, left = Math.max(12, Math.min(r.left + r.width * .35 - w, innerWidth - w - 12));
+    b.style.left = left + "px";
+    b.style.top = Math.max(12, r.top - b.offsetHeight + 18) + "px";
+    b.style.setProperty("--tail", Math.min(w - 28, Math.max(18, r.left + r.width * .3 - left)) + "px");
+    b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+    clearTimeout(bubbleT); bubbleT = setTimeout(() => { talking = false; b.classList.remove("show"); setTimeout(() => { if (!b.classList.contains("show")) b.hidden = true }, 250) }, hintText ? 1600 : 3200);
+  }
+
+  /* 3秒に1回ぴょんと跳ねて「僕を2回タップすると・・・」 */
+  setTimeout(() => setInterval(() => {
+    if (document.hidden) return;
+    const w = document.querySelector(".lionwrap");
+    if (!RM.matches) { w.classList.remove("hop"); void w.offsetWidth; w.classList.add("hop") }
+    speak("僕を2回タップすると・・・");
+  }, 3000), 1400);
+  $("bubble").addEventListener("click", () => { talking = false; $("bubble").classList.remove("show"); setTimeout(() => $("bubble").hidden = true, 250) });
+  function confetti() {
+    if (RM.matches) return;
+    const c = $("fx"), x = c.getContext("2d"), dpr = devicePixelRatio || 1; c.hidden = false;
+    c.width = innerWidth * dpr; c.height = innerHeight * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cols = ["#DB5426", "#D87D3C", "#231917", "#FFF8EE", "#8A5A2B"];
+    const P = Array.from({ length: 110 }, () => ({ x: innerWidth - 70, y: 90, vx: -Math.random() * 11 - 1, vy: -Math.random() * 9 - 2, r: Math.random() * 6 + 4, a: Math.random() * 6, va: (Math.random() - .5) * .4, c: cols[Math.random() * cols.length | 0] }));
+    const t0 = performance.now();
+    (function f(t) {
+      x.clearRect(0, 0, innerWidth, innerHeight);
+      P.forEach(p => { p.vy += .3; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); x.restore() });
+      if (t - t0 < 2400) requestAnimationFrame(f); else { x.clearRect(0, 0, innerWidth, innerHeight); c.hidden = true }
+    })(t0);
+  }
+
+  /* スマホ：上で下に引っ張って更新 */
+  (() => {
+    const ptr = $("ptr"); let y0 = null, dy = 0, pulling = false;
+    addEventListener("touchstart", e => { if (scrollY <= 0) { y0 = e.touches[0].clientY; dy = 0; pulling = true } }, { passive: true });
+    addEventListener("touchmove", e => {
+      if (!pulling || y0 == null) return;
+      dy = Math.max(0, e.touches[0].clientY - y0);
+      const d = Math.min(dy * .5, 90);
+      ptr.style.transform = `translateY(${d - 70}px) rotate(${d * 4}deg)`;
+      ptr.style.opacity = Math.min(1, d / 60);
+      if (dy > 140 && !ptr.dataset.armed) { ptr.dataset.armed = "1"; buzz(10) }
+    }, { passive: true });
+    addEventListener("touchend", () => {
+      if (!pulling) return; pulling = false;
+      if (dy > 140) { ptr.classList.add("spin"); ptr.style.transform = "translateY(10px)"; setTimeout(() => location.reload(), 450) }
+      else { ptr.style.transition = "transform .25s, opacity .25s"; ptr.style.transform = "translateY(-70px)"; ptr.style.opacity = 0; setTimeout(() => ptr.style.transition = "", 260) }
+      delete ptr.dataset.armed; y0 = null;
+    });
+  })();
+
+  /* 足元のヒント（端末に合わせて） */
+  $("tip").textContent = matchMedia("(hover:none)").matches
+    ? "長押しでリンクをコピー・上で下に引っ張ると更新"
+    : "「/」で検索・数字キー（1〜" + APPS.length + "）でアプリを開く";
+</script>
+</body>
+</html>
