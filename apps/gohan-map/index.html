@@ -68,7 +68,7 @@
   .btn{flex:1;border:0;border-radius:12px;padding:12px;font-weight:700;background:var(--soft);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:inherit;font-size:14px}
   .btn.main{background:var(--red);color:#fff}
   .btn.dark{background:var(--dark);color:#fff}
-  .btn:disabled{opacity:.5}
+  .btn:disabled,.send:disabled,.chip:disabled{opacity:.45}
 
   /* フォーム */
   .scroll{flex:1;overflow:auto;padding:calc(env(safe-area-inset-top) + 14px) 16px 30px;-webkit-overflow-scrolling:touch}
@@ -152,7 +152,7 @@
 <section class="view" id="v-add">
   <div class="scroll">
     <div class="title"><span id="formTitle">お店を記録</span><button class="chip" id="reset">新しく</button></div>
-    <div class="warn" id="nokey" hidden>Claude の API キーが未設定なので、口コミ作成と相談はまだ使えません（記録とマップは使えます）。</div>
+    <div class="warn" id="nokey" hidden>Claude の口コミ作成とお昼相談は<b>保留中</b>です（お金がかかるため・設定の「保留リスト」）。記録・マップ・口コミのコピーは使えます。</div>
 
     <div class="card">
       <label>Googleマップのリンク（共有→コピーで貼ると店名と場所が入ります）</label>
@@ -214,7 +214,7 @@
 <!-- ③ 相談 -->
 <section class="view" id="v-ask">
   <div class="chat" id="chat">
-    <div class="msg a">お腹すいた？どんな気分か言うてくれたら、記録してる店から選ぶで🍜</div>
+    <div class="msg a" id="hello">お腹すいた？どんな気分か言うてくれたら、記録してる店から選ぶで🍜</div>
   </div>
   <div class="loc" id="loc">場所：<span id="locText">まだ分からない</span><button id="locBtn">今いる場所を使う</button><button id="areaBtn">エリアを入れる</button></div>
   <div class="quick" id="quick"></div>
@@ -240,8 +240,14 @@
       <a class="btn" id="sheetLink" target="_blank" rel="noopener" style="margin-top:10px">データ（スプレッドシート）を開く</a>
     </div>
     <div class="card">
-      <b>Claude</b>
+      <b>保留リスト</b>
       <p class="hint" style="font-size:13px" id="keyState"></p>
+      <ul class="hint" style="font-size:13px;margin:8px 0 0 18px;line-height:1.8">
+        <li>Claude が口コミを俺っぽく書く（お金がかかる：Haikuなら1回1円未満）</li>
+        <li>Claude にお昼の相談（お金がかかる：同上）</li>
+        <li>使う Claude を選ぶ（Haiku / Sonnet / Opus）</li>
+        <li>「Googleマップで投稿」で口コミを書く画面をいきなり開く（無料・調べ中）</li>
+      </ul>
     </div>
   </div>
 </section>
@@ -271,6 +277,8 @@ function run(fn, ...args) {
 }
 const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch (e) { return d } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} } };
 
+// ▼ Claude を使う機能（お金がかかる）のスイッチ。保留中は false。使うときは true にして、Code.gs の AI_ENABLED も true に
+const AI_ON = false;
 let SPOTS = [], HAS_KEY = false, HERE = null;
 const OSAKA = [34.6937, 135.5023];
 
@@ -599,11 +607,22 @@ $("takeout").onchange = async e => {
 /* ───────── 起動 ───────── */
 async function load(fit) {
   const d = await run("getInit");
-  SPOTS = d.spots; HAS_KEY = d.hasKey;
+  SPOTS = d.spots; HAS_KEY = AI_ON && d.hasKey;
   $("nokey").hidden = HAS_KEY;
-  $("keyState").innerHTML = HAS_KEY ? "API キー：設定済み ✓" : "API キーが未設定です。Apps Script の「プロジェクトの設定」→「スクリプト プロパティ」に <b>ANTHROPIC_API_KEY</b> を追加してください。";
+  $("keyState").innerHTML = !AI_ON ? "Claude を使う機能は<b>保留中</b>です（ボタンは押せません）。やることは下のとおり。" : HAS_KEY ? "API キー：設定済み ✓" : "API キーが未設定です。Apps Script の「プロジェクトの設定」→「スクリプト プロパティ」に <b>ANTHROPIC_API_KEY</b> を追加してください。";
   $("sheetLink").href = d.sheetUrl; $("exCount").textContent = d.exampleCount;
   drawFilters(); drawPins(fit);
+}
+/* 保留中：Claude を使うボタンを押せないようにする */
+if (!AI_ON) {
+  $("write").disabled = true; $("write").textContent = "Claude に書いてもらう（保留中）";
+  $("rewrite").disabled = true; $("fix").disabled = true; $("fix").placeholder = "保留中";
+  $("review").placeholder = "今は自分で書いてコピー → Googleマップで投稿";
+  $("sendBtn").disabled = true; $("askText").disabled = true; $("askText").placeholder = "お昼相談は保留中";
+  $("quick").querySelectorAll("button").forEach(b => b.disabled = true);
+  $("quick").style.opacity = .5; $("loc").style.display = "none";
+  $("hello").textContent = "お昼相談は今は保留中やで。使えるようになったら、記録してる店から選んでおすすめするわ🍜";
+  $("nokey").hidden = false;
 }
 fillForm(null);
 busy("読み込み中…");

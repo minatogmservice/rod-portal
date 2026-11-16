@@ -11,6 +11,8 @@
 
 // 使う Claude。安い順に 'claude-haiku-5-5'（1回1円しない）→ 'claude-sonnet-5-5' → 'claude-opus-5-5'（一番うまい・1回10〜20円）
 const MODEL = 'claude-haiku-5-5';
+// Claude を使う機能（お金がかかる）のスイッチ。保留中は false（index.html の AI_ON も同じにする）
+const AI_ENABLED = false;
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2026-10-21';
 const COLS = ['id', '店名', '住所', '緯度', '経度', 'ジャンル', '価格帯', '評価', '推し', '雰囲気', '店員',
@@ -206,6 +208,7 @@ function importReviews(items) {
 
 /* ───────── Claude ───────── */
 function claude_(system, messages, opt) {
+  if (!AI_ENABLED) throw new Error('Claude を使う機能は保留中です');
   const key = props_().getProperty('ANTHROPIC_API_KEY');
   if (!key) throw new Error('Claude の API キーが未設定です（README の手順3）');
   const body = {
