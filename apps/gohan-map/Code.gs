@@ -9,7 +9,8 @@
  * スプレッドシートと写真フォルダは、最初に開いたときに自動で作られます。
  */
 
-const MODEL = 'claude-opus-5-5';
+// 使う Claude。安い順に 'claude-haiku-5-5'（1回1円しない）→ 'claude-sonnet-5-5' → 'claude-opus-5-5'（一番うまい・1回10〜20円）
+const MODEL = 'claude-haiku-5-5';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2026-10-21';
 const COLS = ['id', '店名', '住所', '緯度', '経度', 'ジャンル', '価格帯', '評価', '推し', '雰囲気', '店員',
@@ -209,12 +210,14 @@ function claude_(system, messages, opt) {
   if (!key) throw new Error('Claude の API キーが未設定です（README の手順3）');
   const body = {
     model: MODEL, max_tokens: 8000, system: system, messages: messages,
-    output_config: Object.assign({ effort: (opt && opt.effort) || 'low' }, opt && opt.format ? { format: opt.format } : {}),
-    fallbacks: 'default'
+    output_config: Object.assign({ effort: (opt && opt.effort) || 'low' }, opt && opt.format ? { format: opt.format } : {})
   };
+  // Opus / Sonnet は、断られたときに別のモデルで書き直す設定（Haiku には無い）
+  const fb = !/haiku/.test(MODEL);
+  if (fb) body.fallbacks = 'default';
   const r = UrlFetchApp.fetch(API_URL, {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { 'x-api-key': key, 'anthropic-version': API_VERSION, 'anthropic-beta': 'server-side-fallback-2026-07-01' },
+    headers: Object.assign({ 'x-api-key': key, 'anthropic-version': API_VERSION }, fb ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {}),
     payload: JSON.stringify(body)
   });
   const code = r.getResponseCode(), res = JSON.parse(r.getContentText() || '{}');
