@@ -295,6 +295,12 @@
       color:"#8A817A", icon:"wrench"
     },
     {
+      name: "ごはんマップ",
+      desc: "行ったお店を自分の地図に記録（推しはハート）。写真とひとことで口コミをClaudeが代筆、お昼の相談もできます（梶原さん専用）",
+      url:  "",   // ← GASをデプロイしたら、ウェブアプリのURLをここに貼る（apps/gohan-map/README.md）
+      color:"#E0245E", icon:"food"
+    },
+    {
       name: "利用者管理",
       desc: "アプリの利用登録の承認・利用者コードの発行・アプリごとの許可／禁止・停止（管理を許可された人だけ開けます）",
       url:  "https://script.google.com/macros/s/AKfycbw3BIX-ycfsKqI_49wI0WZ1s-9qv_fwkNZAPucVCIOu15slcwKWgZGshFGU0liv8Q3qkg/exec",
@@ -333,6 +339,7 @@
     box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
     alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
     key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2"/></svg>',
+    food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-7-11a7 7 0 0 1 14 0c0 6.4-7 11-7 11z"/><path d="M10 6v4a2 2 0 0 0 4 0V6M12 6v9"/></svg>',
     app:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>'
   };
 
@@ -369,7 +376,7 @@
   APPS.forEach((a, i) => {
     const el = document.createElement("a");
     el.className = "tile";
-    el.href = a.url;
+    el.href = a.url || "#";
     el.target = "_blank";          // 別画面で開く（iPhoneは「完了」でポータルに戻れます）
     el.rel = "noopener";
     el.style.borderLeftColor = a.color;
@@ -385,14 +392,15 @@
   });
 
   /* ★を付けたアプリは上に大きく、ほかは見出しごとに小さく並べる（★は端末ごとに覚える） */
-  const CAT_ORDER = ["車両・お客様", "部品", "お金", "事故", "管理"];
+  const CAT_ORDER = ["車両・お客様", "部品", "お金", "事故", "管理", "じぶん用"];
   const CATS = {
     "マスタ検索": "車両・お客様", "整備記録": "車両・お客様", "レンタル開始・返却": "車両・お客様", "出張整備ボード": "車両・お客様",
     "お客様マスタ（お試し）": "車両・お客様", "整備記録（前の画面）": "車両・お客様",
     "請求書システム": "お金", "領収書依頼ボード": "お金", "金額変更ボード": "お金",
     "部品発注": "部品",
     "事故管理": "事故",
-    "利用者管理": "管理"
+    "利用者管理": "管理",
+    "ごはんマップ": "じぶん用"
   };
   const DEFAULT_STARS = ["整備記録", "レンタル開始・返却"];
   function getStars() { const v = store.get("rod-stars", null); return Array.isArray(v) ? v : DEFAULT_STARS.slice() }
@@ -464,6 +472,7 @@
   grid.addEventListener("click", e => {
     const t = e.target.closest(".tile"); if (!t) return;
     if (t.dataset.lp) { e.preventDefault(); delete t.dataset.lp; return }
+    if (t.getAttribute("href") === "#") { e.preventDefault(); toast("<b>" + t.dataset.name + "</b> は準備中です（URL未設定）", 3000); return }
     buzz(12);
     t.classList.remove("launch"); void t.offsetWidth; t.classList.add("launch");
     toast("<b>" + t.dataset.name + "</b> を開いています…");

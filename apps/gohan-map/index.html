@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ごはんマップ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --dark:#231917; --orange:#D87D3C; --red:#DB5426; --heart:#E0245E;
+    --bg:#FFF8EE; --card:#fff; --text:#231917; --sub:#7a6a64; --line:#eadfd3; --soft:#fbeee2;
+    --shadow:0 2px 6px rgba(35,25,23,.1),0 10px 28px rgba(35,25,23,.14);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#17110f; --card:#241c19; --text:#f6ece4; --sub:#b4a49c; --line:#3a2d28; --soft:#33241d;
+      --shadow:0 2px 6px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.5); color-scheme:dark}
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;overflow:hidden}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .view{position:fixed;inset:0 0 calc(62px + env(safe-area-inset-bottom)) 0;display:none;flex-direction:column}
+  .view.on{display:flex}
+  nav{position:fixed;left:0;right:0;bottom:0;height:calc(62px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
+    background:var(--dark);display:flex;z-index:1000}
+  nav button{flex:1;background:none;border:0;color:#cdbfb8;font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+  nav button svg{width:24px;height:24px}
+  nav button.on{color:#fff}
+  nav button.on svg{color:var(--orange)}
+  nav .add{flex:0 0 76px}
+  nav .add span{width:48px;height:48px;border-radius:50%;background:var(--red);display:grid;place-items:center;color:#fff;margin-top:-18px;box-shadow:0 4px 14px rgba(219,84,38,.5)}
+
+  /* マップ */
+  #map{flex:1;background:var(--soft)}
+  .mapbar{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:12px;right:12px;z-index:500;display:flex;flex-direction:column;gap:8px}
+  .search{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:24px;padding:0 6px 0 16px;height:46px;box-shadow:var(--shadow)}
+  .search input{flex:1;border:0;background:none;outline:0;font-size:16px;min-width:0}
+  .iconbtn{width:36px;height:36px;border-radius:50%;border:0;background:var(--soft);display:grid;place-items:center;flex:none}
+  .iconbtn svg{width:20px;height:20px}
+  .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:18px;padding:6px 12px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .chip.on{background:var(--dark);color:#fff;border-color:var(--dark)}
+  .count{position:absolute;left:12px;bottom:12px;z-index:500;background:var(--card);border-radius:14px;padding:5px 11px;font-size:12px;color:var(--sub);box-shadow:var(--shadow)}
+  .pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .pin b{transform:rotate(45deg);color:#fff;font-size:13px;line-height:1}
+  .pin.fav{background:var(--heart);width:36px;height:36px}
+  .pin.fav b{font-size:17px}
+  .me{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.25)}
+
+  /* ボトムシート */
+  .sheet{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom));z-index:900;background:var(--card);border-radius:20px 20px 0 0;
+    box-shadow:var(--shadow);max-height:72vh;overflow:auto;transform:translateY(110%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:10px 18px 20px}
+  .sheet.on{transform:none}
+  .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+  .sheet h3{font-size:19px;display:flex;align-items:center;gap:8px}
+  .meta{color:var(--sub);font-size:13px;margin:4px 0 10px}
+  .stars{color:#F5A623;letter-spacing:1px}
+  .photos{display:flex;gap:6px;overflow-x:auto;margin:8px 0}
+  .photos img{height:120px;border-radius:10px;flex:none;background:var(--soft);object-fit:cover}
+  .note{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.6;margin:8px 0;white-space:pre-wrap}
+  .note small{display:block;color:var(--sub);font-size:11px;margin-bottom:2px}
+  .row{display:flex;gap:8px;margin-top:12px}
+  .btn{flex:1;border:0;border-radius:12px;padding:12px;font-weight:700;background:var(--soft);display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:inherit;font-size:14px}
+  .btn.main{background:var(--red);color:#fff}
+  .btn.dark{background:var(--dark);color:#fff}
+  .btn:disabled{opacity:.5}
+
+  /* フォーム */
+  .scroll{flex:1;overflow:auto;padding:calc(env(safe-area-inset-top) + 14px) 16px 30px;-webkit-overflow-scrolling:touch}
+  .title{font-size:22px;font-weight:800;margin:4px 0 14px;display:flex;align-items:center;justify-content:space-between}
+  .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  label{display:block;font-size:12px;color:var(--sub);font-weight:700;margin:10px 0 5px}
+  label:first-child{margin-top:0}
+  .in{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:11px 12px;font-size:16px;outline:0}
+  .in:focus{border-color:var(--orange)}
+  textarea.in{min-height:64px;resize:vertical;line-height:1.5}
+  .inrow{display:flex;gap:8px}
+  .inrow .in{flex:1;min-width:0}
+  .inrow .btn{flex:none;padding:0 14px}
+  .rate{display:flex;gap:4px;font-size:32px;color:var(--line)}
+  .rate span.on{color:#F5A623}
+  .fav{display:flex;align-items:center;gap:10px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:700;background:none;width:100%}
+  .fav .h{font-size:24px;color:var(--line);transition:transform .2s}
+  .fav.on{border-color:var(--heart);color:var(--heart)}
+  .fav.on .h{color:var(--heart);transform:scale(1.2)}
+  #pickmap{height:180px;border-radius:12px;margin-top:8px}
+  .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+  .thumbs div{position:relative}
+  .thumbs img{width:76px;height:76px;object-fit:cover;border-radius:10px;display:block}
+  .thumbs button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:var(--dark);color:#fff;font-size:13px}
+  .addph{width:76px;height:76px;border-radius:10px;border:2px dashed var(--line);display:grid;place-items:center;color:var(--sub);font-size:28px}
+  .ai{border:2px solid var(--orange)}
+  .ai .head{display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:6px}
+  #review{min-height:170px}
+  .hint{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.5}
+
+  /* 相談 */
+  .chat{flex:1;overflow:auto;padding:calc(env(safe-area-inset-top) + 14px) 14px 10px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:86%;padding:10px 13px;border-radius:16px;line-height:1.6;font-size:15px;white-space:pre-wrap}
+  .msg.u{align-self:flex-end;background:var(--red);color:#fff;border-bottom-right-radius:4px}
+  .msg.a{align-self:flex-start;background:var(--card);border-bottom-left-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .picks{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .pick{display:flex;align-items:center;gap:8px;background:var(--soft);border-radius:10px;padding:8px 10px;border:0;text-align:left;width:100%}
+  .pick b{flex:1}
+  .pick small{color:var(--sub)}
+  .quick{display:flex;gap:6px;overflow-x:auto;padding:0 14px 8px;scrollbar-width:none}
+  .ask{display:flex;gap:8px;padding:8px 12px;background:var(--card);border-top:1px solid var(--line);align-items:flex-end}
+  .ask textarea{flex:1;border:1px solid var(--line);border-radius:20px;padding:9px 14px;font-size:16px;background:var(--bg);resize:none;max-height:110px;outline:0}
+  .send{width:42px;height:42px;border-radius:50%;border:0;background:var(--red);color:#fff;display:grid;place-items:center;flex:none}
+  .loc{font-size:12px;color:var(--sub);padding:0 14px 6px;display:flex;gap:6px;align-items:center}
+  .loc button{border:0;background:none;color:var(--orange);font-weight:700;font-size:12px;text-decoration:underline}
+  .typing{display:inline-flex;gap:4px}
+  .typing i{width:7px;height:7px;border-radius:50%;background:var(--sub);animation:b 1s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes b{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-4px)}}
+
+  .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translate(-50%,-90px);background:var(--dark);color:#fff;padding:10px 16px;border-radius:22px;
+    font-size:14px;z-index:2000;transition:transform .3s;max-width:90vw;text-align:center}
+  .toast.on{transform:translate(-50%,0)}
+  .busy{position:fixed;inset:0;z-index:1900;background:rgba(0,0,0,.35);display:none;place-items:center}
+  .busy.on{display:grid}
+  .busy div{background:var(--card);border-radius:16px;padding:18px 22px;font-weight:700;display:flex;gap:10px;align-items:center}
+  .spin{width:20px;height:20px;border:3px solid var(--line);border-top-color:var(--red);border-radius:50%;animation:s .7s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .warn{background:#fff3cd;color:#6b4e00;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.5}
+  @media (prefers-color-scheme: dark){.warn{background:#3d3214;color:#f3dc9a}}
+  a{color:var(--orange)}
+</style>
+</head>
+<body>
+
+<!-- ① マップ -->
+<section class="view on" id="v-map">
+  <div id="map"></div>
+  <div class="mapbar">
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="店名・ジャンル・メモで探す" autocomplete="off">
+      <button class="iconbtn" id="locate" aria-label="今いる場所"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg></button>
+    </div>
+    <div class="chips" id="filters"></div>
+  </div>
+  <div class="count" id="count"></div>
+</section>
+
+<!-- ② 記録する -->
+<section class="view" id="v-add">
+  <div class="scroll">
+    <div class="title"><span id="formTitle">お店を記録</span><button class="chip" id="reset">新しく</button></div>
+    <div class="warn" id="nokey" hidden>Claude の API キーが未設定なので、口コミ作成と相談はまだ使えません（記録とマップは使えます）。</div>
+
+    <div class="card">
+      <label>Googleマップのリンク（共有→コピーで貼ると店名と場所が入ります）</label>
+      <div class="inrow"><input class="in" id="f-url" placeholder="https://maps.app.goo.gl/…" inputmode="url"><button class="btn" id="readUrl">読む</button></div>
+      <label>店名</label>
+      <input class="in" id="f-name" placeholder="例：煮炊き焼き鳥 御尽">
+      <label>場所（地図をタップでも決められます）</label>
+      <div class="inrow"><input class="in" id="f-address" placeholder="住所やエリア"><button class="btn" id="findAddr">探す</button></div>
+      <div id="pickmap"></div>
+      <label>ジャンル</label>
+      <input class="in" id="f-genre" list="genres" placeholder="ラーメン / 焼肉 / 定食 …">
+      <datalist id="genres"></datalist>
+      <div class="inrow">
+        <div style="flex:1"><label>価格帯（1人）</label>
+          <select class="in" id="f-price"><option value="">—</option><option>〜¥1,000</option><option>¥1,000〜2,000</option><option>¥2,000〜3,000</option><option>¥3,000〜5,000</option><option>¥5,000〜</option></select></div>
+        <div style="flex:1"><label>行った日</label><input class="in" type="date" id="f-visited"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>評価</label>
+      <div class="rate" id="rate"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+      <label>お気に入り</label>
+      <button class="fav" id="fav" type="button"><span class="h">♥</span><span>推しの店にする（マップでハートになります）</span></button>
+    </div>
+
+    <div class="card">
+      <label>写真</label>
+      <div class="thumbs" id="thumbs"><label class="addph" for="file" style="margin:0">＋</label></div>
+      <input type="file" id="file" accept="image/*" multiple hidden>
+      <label>雰囲気（ひとことでOK）</label>
+      <input class="in" id="f-vibe" placeholder="例：カウンター中心で落ち着く、昭和っぽい">
+      <label>店員さんの印象</label>
+      <input class="in" id="f-staff" placeholder="例：大将が気さく、注文すぐ来た">
+      <label>ひとことメモ</label>
+      <textarea class="in" id="f-memo" placeholder="例：ずっと気になってた。ねぎま最高。駐車場なし、コインパ近い"></textarea>
+    </div>
+
+    <div class="card ai">
+      <div class="head"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>口コミ</div>
+      <button class="btn main" id="write">Claude に俺っぽく書いてもらう</button>
+      <label>口コミ文（自分で直してもOK）</label>
+      <textarea class="in" id="review" placeholder="ここに口コミ文が入ります"></textarea>
+      <div class="inrow" style="margin-top:8px"><input class="in" id="fix" placeholder="直してほしいこと（例：もっと短く）"><button class="btn" id="rewrite">書き直し</button></div>
+      <div class="row">
+        <button class="btn dark" id="copy">コピー</button>
+        <a class="btn" id="openG" target="_blank" rel="noopener">Googleマップで投稿</a>
+      </div>
+      <p class="hint">コピー →「Googleマップで投稿」→ お店の「クチコミを書く」に貼り付け。写真もそこで追加してください。</p>
+    </div>
+
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn" id="del" hidden>消す</button>
+      <button class="btn main" id="save">保存してマップに出す</button>
+    </div>
+  </div>
+</section>
+
+<!-- ③ 相談 -->
+<section class="view" id="v-ask">
+  <div class="chat" id="chat">
+    <div class="msg a">お腹すいた？どんな気分か言うてくれたら、記録してる店から選ぶで🍜</div>
+  </div>
+  <div class="loc" id="loc">場所：<span id="locText">まだ分からない</span><button id="locBtn">今いる場所を使う</button><button id="areaBtn">エリアを入れる</button></div>
+  <div class="quick" id="quick"></div>
+  <div class="ask">
+    <textarea id="askText" rows="1" placeholder="お昼どこ行こ？"></textarea>
+    <button class="send" id="sendBtn" aria-label="送る"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+</section>
+
+<!-- ④ 設定 -->
+<section class="view" id="v-set">
+  <div class="scroll">
+    <div class="title">設定</div>
+    <div class="card">
+      <b>Googleの口コミを取り込む</b>
+      <p class="hint" style="font-size:13px">Googleテイクアウト（takeout.google.com）で「マップ（マイプレイス）」だけ選んで書き出すと、中に <b>Reviews.json</b>（または「クチコミ.json」）があります。それを選ぶと、今までの口コミ全部がマップに入り、Claude が「俺っぽさ」を覚えるお手本にもなります。★5は推しになります。</p>
+      <label class="btn dark" for="takeout" style="margin-top:10px;color:#fff">Reviews.json を選ぶ</label>
+      <input type="file" id="takeout" accept=".json,application/json" hidden>
+    </div>
+    <div class="card">
+      <b>お手本の口コミ</b>
+      <p class="hint" style="font-size:13px">いま <b id="exCount">0</b> 件。取り込んだ口コミ・アプリで保存した口コミ（60文字以上）が自動でお手本になります。足したい文はデータの「お手本」シートに貼ってください。</p>
+      <a class="btn" id="sheetLink" target="_blank" rel="noopener" style="margin-top:10px">データ（スプレッドシート）を開く</a>
+    </div>
+    <div class="card">
+      <b>Claude</b>
+      <p class="hint" style="font-size:13px" id="keyState"></p>
+    </div>
+  </div>
+</section>
+
+<nav>
+  <button class="on" data-v="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>マップ</button>
+  <button data-v="ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>お昼相談</button>
+  <button class="add" data-v="add"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
+  <button data-v="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 21s-7-4.6-9.3-9A5.3 5.3 0 0 1 12 6.3 5.3 5.3 0 0 1 21.3 12C19 16.4 12 21 12 21z"/></svg>推し</button>
+  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>設定</button>
+</nav>
+
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+<div class="busy" id="busy"><div><span class="spin"></span><span id="busyText">読み込み中…</span></div></div>
+
+<script>
+/* ───────── 共通 ───────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const stars = n => n ? '<span class="stars">' + "★".repeat(n) + '<span style="opacity:.25">' + "★".repeat(5 - n) + "</span></span>" : "";
+let toastT;
+function toast(t, ms = 2400) { const e = $("toast"); e.textContent = t; e.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove("on"), ms) }
+function busy(t) { $("busyText").textContent = t || ""; $("busy").classList.toggle("on", !!t) }
+function run(fn, ...args) {
+  return new Promise((ok, ng) => google.script.run.withSuccessHandler(ok).withFailureHandler(e => ng(e && e.message || String(e)))[fn](...args));
+}
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch (e) { return d } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) {} } };
+
+let SPOTS = [], HAS_KEY = false, HERE = null;
+const OSAKA = [34.6937, 135.5023];
+
+/* ───────── タブ ───────── */
+let filterFav = false;
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  let v = b.dataset.v;
+  if (v === "list") { filterFav = true; v = "map"; setFilter("推し") }
+  else if (v === "map") { filterFav = false }
+  show(v);
+});
+function show(v) {
+  document.querySelectorAll(".view").forEach(x => x.classList.toggle("on", x.id === "v-" + v));
+  const key = v === "map" && filterFav ? "list" : v;
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.v === key));
+  if (v === "map") setTimeout(() => map.invalidateSize(), 50);
+  if (v === "add") setTimeout(() => pick.invalidateSize(), 50);
+  closeSheet();
+}
+
+/* ───────── マップ ───────── */
+const tiles = () => L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" });
+const map = L.map("map", { zoomControl: false, attributionControl: true }).setView(store.get("gm-view", OSAKA), store.get("gm-zoom", 12));
+tiles().addTo(map);
+map.on("moveend", () => { const c = map.getCenter(); store.set("gm-view", [c.lat, c.lng]); store.set("gm-zoom", map.getZoom()) });
+map.on("click", closeSheet);
+const layer = L.layerGroup().addTo(map);
+let meMarker = null;
+
+const COLORS = { 5: "#DB5426", 4: "#D87D3C", 3: "#B8A07A", 2: "#8A817A", 1: "#6b625d", 0: "#9c8f88" };
+function genreChar(g) {
+  g = g || "";
+  const t = [["ラーメン|中華そば|つけ麺", "麺"], ["焼肉|ホルモン", "肉"], ["焼き鳥|焼鳥", "鳥"], ["寿司|鮨", "寿"], ["カフェ|喫茶|コーヒー", "☕"], ["お好み|もんじゃ|たこ焼", "粉"], ["居酒屋|バー|酒", "酒"], ["カレー", "カ"], ["定食|食堂", "定"], ["うどん|そば|蕎麦", "う"], ["中華|餃子|チャーハン", "中"], ["パン|ベーカリー", "パ"], ["ハンバーガー|バーガー|マクド", "B"]];
+  for (const [re, c] of t) if (new RegExp(re).test(g)) return c;
+  return "";
+}
+function icon(s) {
+  const fav = s.fav;
+  return L.divIcon({
+    className: "", iconSize: fav ? [36, 36] : [30, 30], iconAnchor: fav ? [4, 36] : [3, 30],
+    html: '<div class="pin' + (fav ? " fav" : "") + '" style="background:' + (fav ? "var(--heart)" : COLORS[s.rating || 0]) + '"><b>' + (fav ? "♥" : esc(genreChar(s.genre) || (s.rating || "・"))) + "</b></div>"
+  });
+}
+
+let activeFilter = "すべて", query = "";
+function genres() { const c = {}; SPOTS.forEach(s => { if (s.genre) c[s.genre] = (c[s.genre] || 0) + 1 }); return Object.keys(c).sort((a, b) => c[b] - c[a]) }
+function drawFilters() {
+  const list = ["すべて", "推し", "★4以上", "最近"].concat(genres().slice(0, 12));
+  $("filters").innerHTML = list.map(f => '<button class="chip' + (f === activeFilter ? " on" : "") + '">' + (f === "推し" ? "♥ " : "") + esc(f) + "</button>").join("");
+  [...$("filters").children].forEach((b, i) => b.onclick = () => { setFilter(list[i]); filterFav = list[i] === "推し"; show("map") });
+  $("genres").innerHTML = genres().concat(["ラーメン", "焼肉", "焼き鳥", "寿司", "定食", "カフェ", "居酒屋", "お好み焼き", "中華", "カレー", "うどん・そば"]).filter((v, i, a) => a.indexOf(v) === i).map(g => "<option>" + esc(g) + "</option>").join("");
+}
+function setFilter(f) { activeFilter = f; drawFilters(); drawPins() }
+function visible() {
+  const q = query.trim().toLowerCase();
+  return SPOTS.filter(s => {
+    if (!s.lat) return false;
+    if (activeFilter === "推し" && !s.fav) return false;
+    if (activeFilter === "★4以上" && s.rating < 4) return false;
+    if (activeFilter === "最近" && !(s.visited && (Date.now() - new Date(s.visited)) < 90 * 864e5)) return false;
+    if (!["すべて", "推し", "★4以上", "最近"].includes(activeFilter) && s.genre !== activeFilter) return false;
+    if (q && ![s.name, s.genre, s.memo, s.review, s.vibe, s.staff, s.address].join(" ").toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function drawPins(fit) {
+  layer.clearLayers();
+  const v = visible();
+  v.sort((a, b) => (a.fav - b.fav) || (a.rating - b.rating)).forEach(s => {
+    L.marker([s.lat, s.lng], { icon: icon(s), zIndexOffset: s.fav ? 1000 : s.rating * 100 }).on("click", e => { L.DomEvent.stop(e); openSpot(s.id) }).addTo(layer);
+  });
+  $("count").textContent = v.length + " 軒" + (SPOTS.length !== v.length ? "（全 " + SPOTS.length + "）" : "");
+  if (fit && v.length) map.fitBounds(L.latLngBounds(v.map(s => [s.lat, s.lng])).pad(0.15), { maxZoom: 15 });
+}
+$("q").addEventListener("input", e => { query = e.target.value; drawPins() });
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") { e.target.blur(); drawPins(true) } });
+
+function locate(cb, silent) {
+  if (!navigator.geolocation) { if (!silent) toast("この画面では現在地が使えません"); return cb && cb(null) }
+  navigator.geolocation.getCurrentPosition(p => {
+    HERE = { lat: p.coords.latitude, lng: p.coords.longitude };
+    if (meMarker) meMarker.remove();
+    meMarker = L.marker([HERE.lat, HERE.lng], { icon: L.divIcon({ className: "", html: '<div class="me"></div>', iconSize: [16, 16] }) }).addTo(map);
+    cb && cb(HERE);
+  }, () => { if (!silent) toast("現在地が取れませんでした。エリアを入れて探してください", 3200); cb && cb(null) }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+}
+$("locate").onclick = () => locate(h => { if (h) map.setView([h.lat, h.lng], 15) });
+
+/* ───────── お店の詳細 ───────── */
+const photoCache = {};
+async function photo(id) { return photoCache[id] || (photoCache[id] = run("getPhoto", id)) }
+function closeSheet() { $("sheet").classList.remove("on") }
+function openSpot(id) {
+  const s = SPOTS.find(x => x.id === id); if (!s) return;
+  const g = s.url || ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(s.name + " " + (s.address || "")));
+  $("sheet").innerHTML =
+    '<div class="grab"></div><h3>' + (s.fav ? '<span style="color:var(--heart)">♥</span>' : "") + esc(s.name) + "</h3>" +
+    '<div class="meta">' + stars(s.rating) + " " + esc([s.genre, s.price, s.visited && s.visited + " に行った"].filter(Boolean).join("・")) + "</div>" +
+    (s.photos.length ? '<div class="photos">' + s.photos.map(p => '<img data-p="' + esc(p) + '" alt="">').join("") + "</div>" : "") +
+    (s.vibe ? '<div class="note"><small>雰囲気</small>' + esc(s.vibe) + "</div>" : "") +
+    (s.staff ? '<div class="note"><small>店員さん</small>' + esc(s.staff) + "</div>" : "") +
+    (s.memo ? '<div class="note"><small>メモ</small>' + esc(s.memo) + "</div>" : "") +
+    (s.review ? '<div class="note"><small>口コミ</small>' + esc(s.review) + "</div>" : "") +
+    '<div class="row"><a class="btn" href="' + esc(g) + '" target="_blank" rel="noopener">Googleマップ</a><button class="btn dark" id="editBtn">編集・口コミ</button></div>';
+  $("sheet").classList.add("on");
+  $("sheet").scrollTop = 0;
+  $("editBtn").onclick = () => { fillForm(s); show("add") };
+  $("sheet").querySelectorAll("img[data-p]").forEach(async im => { try { im.src = await photo(im.dataset.p) } catch (e) { im.remove() } });
+  if (s.lat) map.panTo([s.lat, s.lng]);
+}
+
+/* ───────── 記録フォーム ───────── */
+const pick = L.map("pickmap", { zoomControl: false, attributionControl: false }).setView(OSAKA, 12);
+tiles().addTo(pick);
+let pickMarker = null;
+function setPick(lat, lng, zoom) {
+  F.lat = lat; F.lng = lng;
+  if (pickMarker) pickMarker.setLatLng([lat, lng]); else pickMarker = L.marker([lat, lng], { icon: icon({ fav: F.fav, rating: F.rating }) }).addTo(pick);
+  pick.setView([lat, lng], zoom || Math.max(pick.getZoom(), 16));
+}
+pick.on("click", e => setPick(e.latlng.lat, e.latlng.lng, pick.getZoom()));
+
+let F = {};
+const today = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") };
+const FIELDS = ["url", "name", "address", "genre", "price", "visited", "vibe", "staff", "memo"];
+function fillForm(s) {
+  F = Object.assign({ photos: [], newPhotos: [], rating: 0, fav: false }, JSON.parse(JSON.stringify(s || {})));
+  F.newPhotos = [];
+  FIELDS.forEach(k => $("f-" + k).value = F[k] || "");
+  if (!s) $("f-visited").value = today();
+  $("review").value = F.review || "";
+  $("fix").value = "";
+  $("formTitle").textContent = s ? "編集" : "お店を記録";
+  $("del").hidden = !s;
+  drawRate(); drawFav(); drawThumbs(); updateG();
+  if (pickMarker) { pickMarker.remove(); pickMarker = null }
+  if (F.lat) setPick(F.lat, F.lng, 16);
+  else if (HERE) pick.setView([HERE.lat, HERE.lng], 15);
+  else pick.setView(map.getCenter(), 13);
+}
+function readForm() { FIELDS.forEach(k => F[k] = $("f-" + k).value.trim()); F.review = $("review").value.trim(); return F }
+function drawRate() { [...$("rate").children].forEach((x, i) => x.classList.toggle("on", i < F.rating)) }
+[...$("rate").children].forEach((x, i) => x.onclick = () => { F.rating = F.rating === i + 1 ? 0 : i + 1; drawRate(); if (pickMarker) pickMarker.setIcon(icon(F)) });
+function drawFav() { $("fav").classList.toggle("on", !!F.fav) }
+$("fav").onclick = () => { F.fav = !F.fav; drawFav(); if (navigator.vibrate) navigator.vibrate(12); if (pickMarker) pickMarker.setIcon(icon(F)) };
+$("reset").onclick = () => fillForm(null);
+$("f-url").addEventListener("input", updateG);
+$("f-name").addEventListener("input", updateG);
+function updateG() {
+  const u = $("f-url").value.trim(), n = $("f-name").value.trim();
+  $("openG").href = u || ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(n + " " + $("f-address").value.trim()));
+}
+
+$("readUrl").onclick = async () => {
+  const u = $("f-url").value.trim(); if (!u) return toast("Googleマップのリンクを貼ってください");
+  busy("リンクを読んでいます…");
+  try {
+    const r = await run("resolveMapsLink", u);
+    if (r.url) $("f-url").value = r.url;
+    if (r.name && !$("f-name").value) $("f-name").value = r.name;
+    if (r.address) $("f-address").value = r.address;
+    if (r.lat) setPick(r.lat, r.lng, 17);
+    toast(r.lat ? "場所を入れました" : "店名だけ読めました。場所は地図をタップしてください", 3000);
+    updateG();
+  } catch (e) { toast(e, 3500) } finally { busy() }
+};
+$("findAddr").onclick = async () => {
+  const q = ($("f-address").value || $("f-name").value).trim(); if (!q) return toast("住所か店名を入れてください");
+  busy("場所を探しています…");
+  try {
+    const r = await run("geocode", q);
+    if (!r.length) toast("見つかりませんでした。地図をタップして決めてください", 3000);
+    else { setPick(r[0].lat, r[0].lng, 17); if (!$("f-address").value) $("f-address").value = r[0].address; toast("見つかりました：" + r[0].address, 3000) }
+  } catch (e) { toast(e, 3500) } finally { busy() }
+};
+
+/* 写真：端末で小さくしてから送る */
+function shrink(file, max = 1280, q = .82) {
+  return new Promise((ok, ng) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const r = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      ok(c.toDataURL("image/jpeg", q));
+    };
+    img.onerror = ng; img.src = url;
+  });
+}
+$("file").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = "";
+  for (const f of files) { try { F.newPhotos.push(await shrink(f)) } catch (err) { toast("読めない写真がありました") } }
+  drawThumbs();
+};
+function drawThumbs() {
+  const box = $("thumbs"); box.querySelectorAll("div").forEach(d => d.remove());
+  const add = box.querySelector(".addph");
+  (F.photos || []).forEach((p, i) => {
+    const d = document.createElement("div"); d.innerHTML = '<img alt=""><button type="button">×</button>';
+    photo(p).then(u => d.querySelector("img").src = u).catch(() => {});
+    d.querySelector("button").onclick = () => { F.photos.splice(i, 1); drawThumbs() };
+    box.insertBefore(d, add);
+  });
+  F.newPhotos.forEach((u, i) => {
+    const d = document.createElement("div"); d.innerHTML = '<img alt="" src="' + u + '"><button type="button">×</button>';
+    d.querySelector("button").onclick = () => { F.newPhotos.splice(i, 1); drawThumbs() };
+    box.insertBefore(d, add);
+  });
+}
+
+/* Claude に口コミを書いてもらう */
+async function write(ask) {
+  if (!HAS_KEY) return toast("Claude の API キーが未設定です（設定タブを見てください）", 3500);
+  readForm();
+  if (!F.name) return toast("店名を入れてください");
+  if (!F.memo && !F.vibe && !F.staff && !F.newPhotos.length && !F.photos.length) return toast("写真かメモを少しだけ入れてください");
+  busy(ask ? "書き直しています…" : "俺っぽく書いています…");
+  try {
+    const old = await Promise.all((F.photos || []).slice(0, 6).map(p => photo(p).catch(() => null)));
+    const photos = F.newPhotos.concat(old.filter(Boolean)).slice(0, 6);
+    const d = { name: F.name, genre: F.genre, price: F.price, rating: F.rating, fav: F.fav, vibe: F.vibe, staff: F.staff, memo: F.memo, visited: F.visited, address: F.address, photos };
+    if (ask) { d.draft = $("review").value; d.ask = ask }
+    $("review").value = await run("writeReview", d);
+    $("fix").value = "";
+    toast("書けました。気になるところは直してください");
+  } catch (e) { toast(e, 4000) } finally { busy() }
+}
+$("write").onclick = () => write();
+$("rewrite").onclick = () => { const a = $("fix").value.trim(); if (!$("review").value.trim()) return write(); write(a || "もう少し自然に、別の言い回しで") };
+$("copy").onclick = async () => {
+  const t = $("review").value; if (!t.trim()) return toast("口コミ文がまだありません");
+  try { await navigator.clipboard.writeText(t); toast("コピーしました") }
+  catch (e) { const a = $("review"); a.focus(); a.select(); a.setSelectionRange(0, t.length); try { document.execCommand("copy"); toast("コピーしました") } catch (er) { toast("文字を長押ししてコピーしてください") } }
+};
+
+$("save").onclick = async () => {
+  readForm();
+  if (!F.name) return toast("店名を入れてください");
+  if (!F.lat) return toast("場所が決まっていません（リンクを読む／探す／地図をタップ）", 3500);
+  busy("保存しています…");
+  try {
+    const saved = await run("saveSpot", F);
+    saved.photos = saved.photos || [];
+    const i = SPOTS.findIndex(x => x.id === saved.id);
+    if (i >= 0) SPOTS[i] = saved; else SPOTS.push(saved);
+    drawFilters(); drawPins();
+    toast(saved.fav ? "♥ 推しの店として保存しました" : "保存しました");
+    filterFav = false; activeFilter = "すべて"; drawFilters(); drawPins();
+    show("map"); map.setView([saved.lat, saved.lng], 16); setTimeout(() => openSpot(saved.id), 300);
+    fillForm(null);
+  } catch (e) { toast(e, 4000) } finally { busy() }
+};
+$("del").onclick = async () => {
+  if (!F.id || !confirm("「" + F.name + "」を消しますか？")) return;
+  busy("消しています…");
+  try { await run("deleteSpot", F.id); SPOTS = SPOTS.filter(x => x.id !== F.id); drawFilters(); drawPins(); fillForm(null); show("map"); toast("消しました") }
+  catch (e) { toast(e) } finally { busy() }
+};
+
+/* ───────── お昼相談 ───────── */
+const chatLog = [];
+let AREA = store.get("gm-area", "");
+function locLabel() { $("locText").textContent = HERE ? "現在地" : (AREA ? AREA : "まだ分からない") }
+locLabel();
+$("locBtn").onclick = () => locate(h => { if (h) { AREA = ""; store.set("gm-area", ""); locLabel(); toast("現在地を使います") } });
+$("areaBtn").onclick = () => { const a = prompt("今どのあたり？（例：天満、会社、なんば）", AREA); if (a != null) { AREA = a.trim(); HERE = null; store.set("gm-area", AREA); locLabel() } };
+const QUICK = ["お昼どこ行こ？", "がっつり食べたい", "近くで推しの店", "しばらく行ってない店", "サクッと安く", "ラーメンの気分"];
+$("quick").innerHTML = QUICK.map(q => '<button class="chip">' + esc(q) + "</button>").join("");
+[...$("quick").children].forEach((b, i) => b.onclick = () => send(QUICK[i]));
+function bubble(cls, html) { const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; $("chat").appendChild(d); $("chat").scrollTop = 1e9; return d }
+async function send(text) {
+  text = (text || $("askText").value).trim(); if (!text) return;
+  if (!HAS_KEY) return toast("Claude の API キーが未設定です（設定タブを見てください）", 3500);
+  $("askText").value = ""; autoSize();
+  bubble("u", esc(text));
+  const wait = bubble("a", '<span class="typing"><i></i><i></i><i></i></span>');
+  try {
+    const r = await run("askLunch", { text, history: chatLog.slice(), lat: HERE && HERE.lat, lng: HERE && HERE.lng, area: AREA });
+    chatLog.push({ role: "user", text }, { role: "assistant", text: r.reply });
+    const picks = (r.picks || []).map(id => SPOTS.find(s => s.id === id)).filter(Boolean);
+    wait.innerHTML = esc(r.reply) + (picks.length ? '<div class="picks">' + picks.map(s =>
+      '<button class="pick" data-id="' + esc(s.id) + '">' + (s.fav ? '<span style="color:var(--heart)">♥</span>' : "") + "<b>" + esc(s.name) + "</b><small>" + esc(s.genre || "") + " " + (s.rating ? "★" + s.rating : "") + "</small>›</button>").join("") + "</div>" : "");
+    wait.querySelectorAll(".pick").forEach(b => b.onclick = () => { activeFilter = "すべて"; filterFav = false; drawFilters(); drawPins(); show("map"); openSpot(b.dataset.id) });
+    $("chat").scrollTop = 1e9;
+  } catch (e) { wait.textContent = "ごめん、うまく聞けんかった：" + e }
+}
+$("sendBtn").onclick = () => send();
+function autoSize() { const t = $("askText"); t.style.height = "auto"; t.style.height = Math.min(110, t.scrollHeight) + "px" }
+$("askText").addEventListener("input", autoSize);
+
+/* ───────── 設定：Googleテイクアウト取り込み ───────── */
+$("takeout").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let items = [];
+  try {
+    const j = JSON.parse(await f.text());
+    const feats = j.features || (Array.isArray(j) ? j : []);
+    items = feats.map(x => {
+      const p = x.properties || x, loc = p.location || p.Location || {}, c = (x.geometry && x.geometry.coordinates) || [];
+      const lat = Number(loc.latitude || (loc.geo && loc.geo.lat) || c[1]) || null, lng = Number(loc.longitude || (loc.geo && loc.geo.lng) || c[0]) || null;
+      return {
+        name: loc.name || loc.business_name || p.name || p.Title || "",
+        address: loc.address || p.address || "",
+        lat: lat || null, lng: lng || null,
+        rating: Number(p.five_star_rating_published || p.rating || p.star_rating) || "",
+        text: p.review_text_published || p.review_text || p.text || "",
+        date: String(p.date || p.published || "").slice(0, 10),
+        url: p.google_maps_url || p.url || ""
+      };
+    }).filter(x => x.name && (x.lat || x.url));
+  } catch (err) { return toast("ファイルが読めませんでした（Reviews.json を選んでください）", 3500) }
+  if (!items.length) return toast("口コミが見つかりませんでした", 3000);
+  if (!confirm(items.length + " 件の口コミが見つかりました。取り込みますか？")) return;
+  let added = 0, skipped = 0;
+  try {
+    for (let i = 0; i < items.length; i += 80) {
+      busy("取り込み中… " + Math.min(i + 80, items.length) + " / " + items.length);
+      const r = await run("importReviews", items.slice(i, i + 80));
+      added += r.added; skipped += r.skipped;
+    }
+    await load(true);
+    toast(added + " 軒を取り込みました" + (skipped ? "（" + skipped + " 件は登録済み）" : ""), 3500);
+  } catch (err) { toast(err, 4000) } finally { busy() }
+};
+
+/* ───────── 起動 ───────── */
+async function load(fit) {
+  const d = await run("getInit");
+  SPOTS = d.spots; HAS_KEY = d.hasKey;
+  $("nokey").hidden = HAS_KEY;
+  $("keyState").innerHTML = HAS_KEY ? "API キー：設定済み ✓" : "API キーが未設定です。Apps Script の「プロジェクトの設定」→「スクリプト プロパティ」に <b>ANTHROPIC_API_KEY</b> を追加してください。";
+  $("sheetLink").href = d.sheetUrl; $("exCount").textContent = d.exampleCount;
+  drawFilters(); drawPins(fit);
+}
+fillForm(null);
+busy("読み込み中…");
+load(!store.get("gm-view", null)).catch(e => toast(e, 5000)).finally(() => busy());
+locate(null, true);
+</script>
+</body>
+</html>
