@@ -295,12 +295,6 @@
       color:"#8A817A", icon:"wrench"
     },
     {
-      name: "ごはんマップ",
-      desc: "行ったお店を自分の地図に記録（推しはハート）。写真とひとことで口コミをClaudeが代筆、お昼の相談もできます（梶原さん専用）",
-      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbwMSGDDW1YtWTY7ufZnJDbf8_vJ3I-6rExI5WTBxKa9xkZShnl59TE8QhEjKgOMEMr-kA/exec",
-      color:"#E0245E", icon:"food"
-    },
-    {
       name: "利用者管理",
       desc: "アプリの利用登録の承認・利用者コードの発行・アプリごとの許可／禁止・停止（管理を許可された人だけ開けます）",
       url:  "https://script.google.com/macros/s/AKfycbw3BIX-ycfsKqI_49wI0WZ1s-9qv_fwkNZAPucVCIOu15slcwKWgZGshFGU0liv8Q3qkg/exec",
@@ -399,8 +393,7 @@
     "請求書システム": "お金", "領収書依頼ボード": "お金", "金額変更ボード": "お金",
     "部品発注": "部品",
     "事故管理": "事故",
-    "利用者管理": "管理",
-    "ごはんマップ": "そのほか"
+    "利用者管理": "管理"
   };
   const DEFAULT_STARS = ["整備記録", "レンタル開始・返却"];
   function getStars() { const v = store.get("rod-stars", null); return Array.isArray(v) ? v : DEFAULT_STARS.slice() }
