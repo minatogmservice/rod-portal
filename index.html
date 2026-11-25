@@ -242,9 +242,15 @@
     },
     {
       name: "請求関係",
-      desc: "毎月の請求・入金と未入金・距離申告・見積・契約の登録と修正・修理の請求（会社のアカウントで開いてください）",
+      desc: "見積書・修理の請求書・毎月の請求を一覧で。入金・未入金、距離申告、契約の登録と修正も（会社のアカウントで開いてください）",
       url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbxeYJVAsVC0MzhwSzE7UNGZlqsYTAa36xOBLshgaCHFEgK-shmqkhTnkuSqPt_aGw3b1w/exec?app=portal",
       color:"#B8612A", icon:"invoice"
+    },
+    {
+      name: "レンタル管理",
+      desc: "一括帳簿の代わり。契約中の車を1台1行で見られます（開くと最新にします・見るだけ／会社のアカウントで開いてください）",
+      url:  "https://script.google.com/a/macros/minato-rod.com/s/AKfycbxeYJVAsVC0MzhwSzE7UNGZlqsYTAa36xOBLshgaCHFEgK-shmqkhTnkuSqPt_aGw3b1w/exec?app=ledger",
+      color:"#3B2A20", icon:"box"
     },
     {
       name: "お客様マスタ（お試し）",
@@ -389,7 +395,7 @@
   const CAT_ORDER = ["車両・お客様", "部品", "お金", "事故", "管理"];
   const CATS = {
     "マスタ検索": "車両・お客様", "整備記録": "車両・お客様", "レンタル開始・返却": "車両・お客様", "出張整備ボード": "車両・お客様",
-    "お客様マスタ（お試し）": "車両・お客様", "整備記録（前の画面）": "車両・お客様",
+    "お客様マスタ（お試し）": "車両・お客様", "整備記録（前の画面）": "車両・お客様", "レンタル管理": "車両・お客様",
     "請求関係": "お金", "領収書依頼ボード": "お金", "金額変更ボード": "お金",
     "部品発注": "部品",
     "事故管理": "事故",
